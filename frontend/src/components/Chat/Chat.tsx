@@ -1,30 +1,80 @@
-import React, { useState, useEffect } from 'react'
-import api from '../../services/api'
+import React, { useState } from 'react'
 import './Chat.css'
 
 interface Message {
   sender: 'USER' | 'ASSISTANT'
-  text: str
+  text: string
   timestamp: string
 }
 
 const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
 
   const handleSend = async () => {
-    if (!input.trim()) return
+    if (!input.trim() || isStreaming) return
 
-    const userMsg: Message = { sender: 'USER', text: input, timestamp: new Date().toISOString() }
-    setMessages([...messages, userMsg])
+    const userMsg: Message = {
+      sender: 'USER',
+      text: input,
+      timestamp: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, userMsg])
     setInput('')
+    setIsStreaming(true)
 
     try {
-      const res = await api.post('/chat', { message: input })
-      const assistantMsg: Message = { sender: 'ASSISTANT', text: res.data.reply, timestamp: new Date().toISOString() }
-      setMessages((prev) => [...prev, assistantMsg])
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ message: input }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ''
+
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'ASSISTANT', text: '', timestamp: new Date().toISOString() },
+      ])
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          accumulated += decoder.decode(value, { stream: true })
+          setMessages((prev) => {
+            const next = [...prev]
+            next[next.length - 1] = {
+              ...next[next.length - 1],
+              text: accumulated,
+            }
+            return next
+          })
+        }
+      }
     } catch (err) {
       console.error('Chat error:', err)
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: 'ASSISTANT',
+          text: 'Sorry, something went wrong.',
+          timestamp: new Date().toISOString(),
+        },
+      ])
+    } finally {
+      setIsStreaming(false)
     }
   }
 
@@ -38,13 +88,16 @@ const Chat: React.FC = () => {
         ))}
       </div>
       <div className="input-area">
-        <input 
-          value={input} 
-          onChange={(e) => setInput(e.target.value)} 
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Type a message..."
+          disabled={isStreaming}
         />
-        <button onClick={handleSend}>Send</button>
+        <button onClick={handleSend} disabled={isStreaming}>
+          Send
+        </button>
       </div>
     </div>
   )
