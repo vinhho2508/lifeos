@@ -24,7 +24,17 @@ BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 @app.event("app_mention")
 async def handle_message_events(body, logger, say, client):
     event = body["event"]
-    user_id = event.get("user")
+
+    # Skip bot messages to prevent self-response loops
+    if event.get("subtype") == "bot_message":
+        return
+
+    event_type = event.get("type")
+
+    # For plain message events (not app_mention), only respond to DMs
+    if event_type == "message" and event.get("channel_type") != "im":
+        return
+
     text = event.get("text")
     thread_ts = event.get("thread_ts") or event.get("ts")
 
