@@ -116,6 +116,7 @@ function SortableColumn({ status, tasks, onMoveTask }: {
 const Board: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [originalStatus, setOriginalStatus] = useState<Task['status'] | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -147,7 +148,10 @@ const Board: React.FC = () => {
   }
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(String(event.active.id))
+    const id = String(event.active.id)
+    setActiveId(id)
+    const task = tasks.find((t) => t.id === id)
+    if (task) setOriginalStatus(task.status)
   }
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -196,11 +200,10 @@ const Board: React.FC = () => {
       }
     }
 
-    if (targetStatus && targetStatus !== activeTask.status) {
+    if (targetStatus && originalStatus !== targetStatus) {
       moveTask(activeTask.id, targetStatus)
-    } else if (activeTask.status === targetStatus) {
-      // reorder within same column — UI already updated
     }
+    setOriginalStatus(null)
   }
 
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null
