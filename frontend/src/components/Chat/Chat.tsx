@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
-import './Chat.css'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface Message {
   sender: 'USER' | 'ASSISTANT'
@@ -49,6 +51,7 @@ const Chat: React.FC = () => {
       ])
 
       if (reader) {
+        // eslint-disable-next-line no-constant-condition
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -79,25 +82,34 @@ const Chat: React.FC = () => {
   }
 
   return (
-    <div className="chat-container">
-      <div className="messages">
-        {messages.map((m, i) => (
-          <div key={i} className={`message ${m.sender.toLowerCase()}`}>
-            <span className="text">{m.text}</span>
-          </div>
-        ))}
-      </div>
-      <div className="input-area">
-        <input
+    <div className="flex h-[500px] flex-col">
+      <ScrollArea className="flex-1 pr-4">
+        <div className="space-y-3">
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                m.sender === 'USER'
+                  ? 'ml-auto bg-primary text-primary-foreground'
+                  : 'bg-muted text-foreground'
+              }`}
+            >
+              <span className="text-sm whitespace-pre-wrap">{m.text}</span>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+      <div className="mt-4 flex gap-2">
+        <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Type a message..."
           disabled={isStreaming}
         />
-        <button onClick={handleSend} disabled={isStreaming}>
+        <Button onClick={handleSend} disabled={isStreaming}>
           Send
-        </button>
+        </Button>
       </div>
     </div>
   )
