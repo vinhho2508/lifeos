@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import api from '../../services/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 const Documents: React.FC = () => {
   const [file, setFile] = useState<File | null>(null)
@@ -22,12 +24,14 @@ const Documents: React.FC = () => {
   }
 
   return (
-    <div className="documents-container">
-      <h2>Knowledge Base</h2>
-      <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-      <button onClick={handleUpload} disabled={uploading}>
+    <div className="flex flex-col gap-4">
+      <Input
+        type="file"
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
+      />
+      <Button onClick={handleUpload} disabled={uploading}>
         {uploading ? 'Digesting...' : 'Upload & Digest'}
-      </button>
+      </Button>
     </div>
   )
 }
