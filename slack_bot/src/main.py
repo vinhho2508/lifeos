@@ -87,6 +87,79 @@ async def handle_message_events(body, logger, say, client):
         )
 
 
+@app.event("reaction_added")
+async def handle_reaction_added(body, logger, client):
+    event = body["event"]
+    reaction = event.get("reaction")
+
+    if reaction != "pushpin":
+        return
+
+    user_id = event.get("user")
+    item = event.get("item", {})
+
+    if item.get("type") != "message":
+        return
+
+    channel = item.get("channel")
+    ts = item.get("ts")
+
+    # Fetch the message that was reacted to
+    try:
+        result = await client.reactions_get(channel=channel, timestamp=ts)
+        message_text = result.get("message", {}).get("text", "")
+    except Exception as e:
+        logger.error(f"Error fetching reacted message: {e}")
+        try:
+            await client.chat_postMessage(
+                channel=user_id,
+                text="Sorry, I couldn't read that message to create a task.",
+            )
+        except Exception:
+            pass
+        return
+
+    if not message_text:
+        try:
+            await client.chat_postMessage(
+                channel=user_id,
+                text="That message doesn't have any text I can turn into a task.",
+            )
+        except Exception:
+            pass
+        return
+
+    # Call backend to create a task from the message
+    try:
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.post(
+                f"{BACKEND_URL}/tasks/from-message",
+                json={"message": message_text},
+                timeout=30.0,
+            )
+            if response.status_code == 200:
+                task = response.json()
+                title = task.get("title", message_text[:100])
+                await client.chat_postMessage(
+                    channel=user_id,
+                    text=f"📌 Created task: *{title}*",
+                )
+            else:
+                await client.chat_postMessage(
+                    channel=user_id,
+                    text="Sorry, I couldn't create a task from that message.",
+                )
+    except Exception as e:
+        logger.error(f"Error creating task from pin: {e}")
+        try:
+            await client.chat_postMessage(
+                channel=user_id,
+                text="Sorry, I'm having trouble connecting to my brain.",
+            )
+        except Exception:
+            pass
+
+
 async def main():
     handler = AsyncSocketModeHandler(app, SLACK_APP_TOKEN)
     await handler.start_async()
