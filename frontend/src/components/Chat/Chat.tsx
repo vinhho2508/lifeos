@@ -82,7 +82,7 @@ const Chat: React.FC = () => {
   }
 
   return (
-    <div className="flex h-[500px] flex-col">
+    <div className="flex h-full flex-col">
       <ScrollArea className="flex-1 pr-4">
         <div className="space-y-3">
           {messages.map((m, i) => (

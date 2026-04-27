@@ -14,7 +14,7 @@ const Login: React.FC = () => {
       })
 
       localStorage.setItem('token', res.data.access_token)
-      navigate('/')
+      navigate('/chat')
     } catch (err: unknown) {
       console.error('Login failed:', err)
       if (err && typeof err === 'object' && 'response' in err) {
