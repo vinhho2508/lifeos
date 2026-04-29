@@ -1,12 +1,14 @@
+import enum
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import String, Text, ForeignKey, DateTime, Enum, Boolean
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from pgvector.sqlalchemy import Vector
-import enum
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
+
 
 class StatusEnum(enum.Enum):
     TODO = "TODO"
@@ -56,7 +58,9 @@ class Document(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     filename: Mapped[str] = mapped_column(String(255))
-    status: Mapped[DocStatusEnum] = mapped_column(Enum(DocStatusEnum), default=DocStatusEnum.UPLOADED)
+    status: Mapped[DocStatusEnum] = mapped_column(
+        Enum(DocStatusEnum), default=DocStatusEnum.UPLOADED
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="documents")
@@ -78,6 +82,7 @@ class Message(Base):
     sender: Mapped[SenderEnum] = mapped_column(Enum(SenderEnum))
     platform: Mapped[PlatformEnum] = mapped_column(Enum(PlatformEnum))
     text: Mapped[str] = mapped_column(Text)
+    content: Mapped[list[dict]] = mapped_column(JSON, default=list)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="messages")

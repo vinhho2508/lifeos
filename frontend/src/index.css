@@ -82,3 +82,49 @@
     font-family: Inter, system-ui, -apple-system, sans-serif;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Gemini-style thinking animation
+   --------------------------------------------------------------------------- */
+
+@keyframes thinking-dot-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes thinking-shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.6;
+  }
+  70% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.thinking-dot {
+  animation: thinking-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.thinking-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--primary) / 0.4),
+    transparent
+  );
+  animation: thinking-shimmer-sweep 2s ease-in-out infinite;
+}
