@@ -26,6 +26,7 @@ class SenderEnum(enum.Enum):
 class PlatformEnum(enum.Enum):
     WEB = "WEB"
     SLACK = "SLACK"
+    CHROME_EXTENSION = "CHROME_EXTENSION"
 
 class User(Base):
     __tablename__ = "users"
