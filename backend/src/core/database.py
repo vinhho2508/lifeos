@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     ALLOWED_USER_EMAIL: str = "vinhho2508@gmail.com"
     OPENAI_API_KEY: str = ""
     SLACK_BOT_TOKEN: str = ""
+    SLACK_DM_USER_ID: str = ""
     SLACK_SIGNING_SECRET: str = ""
     S3_BUCKET_NAME: str = ""
     AWS_REGION: str = "us-east-1"
