@@ -4,11 +4,13 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Message, ContentBlock, ContentDelta } from '@/types/chat'
 import MessageBubble from './MessageBubble'
+import ThinkingAnimation from './ThinkingAnimation'
 
 const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [hasReceivedFirstToken, setHasReceivedFirstToken] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when messages change
@@ -58,6 +60,7 @@ const Chat: React.FC = () => {
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     setIsStreaming(true)
+    setHasReceivedFirstToken(false)
 
     try {
       const token = localStorage.getItem('token')
@@ -117,6 +120,8 @@ const Chat: React.FC = () => {
                 }
                 return next
               })
+              // Mark first token received
+              setHasReceivedFirstToken(true)
             } catch (e) {
               console.warn('Failed to parse delta:', line, e)
             }
@@ -136,18 +141,36 @@ const Chat: React.FC = () => {
       ])
     } finally {
       setIsStreaming(false)
+      setHasReceivedFirstToken(false)
     }
   }, [input, isStreaming])
+
+  // Determine if we should show the global thinking indicator:
+  // streaming is active and no first token yet
+  const showGlobalThinking = isStreaming && !hasReceivedFirstToken
 
   return (
     <div className="flex h-full flex-col">
       <ScrollArea className="flex-1 pr-4">
         <div ref={scrollRef} className="space-y-3">
           {messages.map((m, i) => (
-            <MessageBubble key={i} message={m} />
+            <MessageBubble
+              key={i}
+              message={m}
+              isStreaming={isStreaming}
+              isLast={i === messages.length - 1}
+            />
           ))}
         </div>
       </ScrollArea>
+
+      {/* Global thinking indicator */}
+      {showGlobalThinking && (
+        <div className="flex items-center justify-center py-2">
+          <ThinkingAnimation />
+        </div>
+      )}
+
       <div className="mt-4 flex gap-2">
         <Input
           value={input}

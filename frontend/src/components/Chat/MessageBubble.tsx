@@ -3,17 +3,28 @@ import { ContentBlock, Message } from '@/types/chat'
 import TextBlock from './ContentBlocks/TextBlock'
 import ThinkingBlock from './ContentBlocks/ThinkingBlock'
 import ImageBlock from './ContentBlocks/ImageBlock'
+import ThinkingAnimation from './ThinkingAnimation'
 
 interface MessageBubbleProps {
   message: Message
+  isStreaming?: boolean
+  isLast?: boolean
 }
 
-const ContentBlockRenderer: React.FC<{ block: ContentBlock }> = ({ block }) => {
+interface ContentBlockRendererProps {
+  block: ContentBlock
+  isStreaming?: boolean
+}
+
+const ContentBlockRenderer: React.FC<ContentBlockRendererProps> = ({
+  block,
+  isStreaming,
+}) => {
   switch (block.type) {
     case 'text':
       return <TextBlock text={block.text} />
     case 'thinking':
-      return <ThinkingBlock thinking={block.thinking} />
+      return <ThinkingBlock thinking={block.thinking} isStreaming={isStreaming} />
     case 'image':
       return <ImageBlock url={block.url} alt={block.alt} />
     case 'citation':
@@ -40,13 +51,22 @@ const ContentBlockRenderer: React.FC<{ block: ContentBlock }> = ({ block }) => {
   }
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  message,
+  isStreaming = false,
+  isLast = false,
+}) => {
   const isUser = message.sender === 'USER'
 
+  // Show thinking animation inside the assistant bubble when:
+  // - it's the last message
+  // - we're streaming
+  // - the bubble has zero content blocks
+  const showBubbleAnimation =
+    !isUser && isLast && isStreaming && message.content.length === 0
+
   return (
-    <div
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-    >
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-3 ${
           isUser
@@ -56,8 +76,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       >
         {message.content && message.content.length > 0 ? (
           message.content.map((block, idx) => (
-            <ContentBlockRenderer key={idx} block={block} />
+            <ContentBlockRenderer
+              key={idx}
+              block={block}
+              isStreaming={isStreaming}
+            />
           ))
+        ) : showBubbleAnimation ? (
+          <ThinkingAnimation size="sm" />
         ) : (
           <span className="text-sm whitespace-pre-wrap">{message.text}</span>
         )}

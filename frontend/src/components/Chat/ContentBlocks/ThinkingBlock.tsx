@@ -1,12 +1,21 @@
 import React, { useState } from 'react'
 import { ChevronDown, ChevronRight, BrainCircuit } from 'lucide-react'
+import ThinkingAnimation from '../ThinkingAnimation'
 
 interface ThinkingBlockProps {
   thinking: string
+  isStreaming?: boolean
 }
 
-const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ thinking }) => {
+const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
+  thinking,
+  isStreaming = false,
+}) => {
   const [expanded, setExpanded] = useState(false)
+  const isEmpty = !thinking || thinking.trim().length === 0
+
+  // Show animation inside the thinking block when empty and streaming
+  const showAnimation = isEmpty && isStreaming
 
   return (
     <div className="my-2 rounded-lg border border-muted bg-muted/40 overflow-hidden">
@@ -24,9 +33,13 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ thinking }) => {
       </button>
       {expanded && (
         <div className="px-3 pb-3">
-          <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
-            {thinking}
-          </pre>
+          {showAnimation ? (
+            <ThinkingAnimation size="sm" />
+          ) : (
+            <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
+              {thinking}
+            </pre>
+          )}
         </div>
       )}
     </div>
