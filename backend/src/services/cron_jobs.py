@@ -1,6 +1,7 @@
 import random
 from datetime import datetime
 
+import httpx
 from sqlalchemy import select
 
 from src.core.database import async_session_factory, settings
@@ -83,15 +84,47 @@ async def daily_task_digest() -> None:
         logger.info(f"Sent daily digest with {len(tasks)} task(s).")
 
 
-@cron_service.register("0 */6 * * *", name="dummy_news_update")
-async def dummy_news_update() -> None:
-    """Placeholder cron job. Sends a reminder to configure news sources."""
-    logger.info("Running dummy_news_update...")
-    await send_slack_dm(
-        "📰 *News Update Placeholder*\n"
-        "This is a demo cron job. Configure your news sources in "
-        "`backend/src/services/cron_jobs.py` to make it useful!"
-    )
+@cron_service.register("0 */6 * * *", name="crypto_price_update")
+async def crypto_price_update() -> None:
+    """Fetch top 10 crypto prices and send a Slack DM every 6 hours."""
+    logger.info("Running crypto_price_update...")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                "https://api.coingecko.com/api/v3/coins/markets",
+                params={
+                    "vs_currency": "usd",
+                    "order": "market_cap_desc",
+                    "per_page": 10,
+                    "page": 1,
+                },
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            coins = response.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch crypto prices: {e}")
+            await send_slack_dm("⚠️ Could not fetch crypto prices right now. Try again later!")
+            return
+
+    lines = ["📊 *Crypto Update (Top 10)*"]
+    for i, coin in enumerate(coins, 1):
+        symbol = coin["symbol"].upper()
+        price = coin["current_price"]
+        change = coin["price_change_percentage_24h"]
+        change_str = f"{change:+.2f}%" if change is not None else "N/A"
+        if change is not None and change > 0:
+            emoji = "🟢"
+        elif change is not None and change < 0:
+            emoji = "🔴"
+        else:
+            emoji = "⚪"
+        lines.append(
+            f"{i}. {coin['name']} ({symbol}): ${price:,.2f} {emoji} {change_str}"
+        )
+
+    await send_slack_dm("\n".join(lines))
+    logger.info(f"Sent crypto update with {len(coins)} coin(s).")
 
 
 @cron_service.register("* * * * *", name="random_message")
