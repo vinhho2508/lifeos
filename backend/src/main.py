@@ -25,6 +25,11 @@ async def on_startup():
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
 
+    # Import to trigger @cron_service.register decorators, then start scheduler
+    from src.services import cron_jobs  # noqa: F401
+    from src.services.cron_service import cron_service
+    cron_service.start()
+
 app.add_exception_handler(LifeOSError, lifeos_exception_handler)
 app.include_router(api_router)
 
