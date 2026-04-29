@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     SLACK_BOT_TOKEN: str = ""
     SLACK_SIGNING_SECRET: str = ""
+    S3_BUCKET_NAME: str = ""
+    AWS_REGION: str = "us-east-1"
     SECRET_KEY: str = "supersecretkey"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 # 1 day

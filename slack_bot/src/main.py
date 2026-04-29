@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from dotenv import load_dotenv, find_dotenv
 from slack_bolt.app.async_app import AsyncApp
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
@@ -18,6 +19,36 @@ if not SLACK_BOT_TOKEN or not SLACK_APP_TOKEN:
 # Setup Async Bolt App
 app = AsyncApp(token=SLACK_BOT_TOKEN)
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+
+
+def deltas_to_text(lines: list[str]) -> str:
+    """Parse NDJSON deltas and convert to plain text for Slack."""
+    text_parts = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            delta = json.loads(line)
+            delta_type = delta.get("type", "")
+            if delta_type == "text":
+                text_parts.append(delta.get("delta", ""))
+            elif delta_type == "thinking":
+                text_parts.append(f"\n💭 {delta.get('delta', '')}\n")
+            elif delta_type == "image":
+                url = delta.get("url", "")
+                alt = delta.get("alt", "image")
+                text_parts.append(f"\n🖼️ [{alt}]({url})\n")
+            elif delta_type == "tool_call":
+                name = delta.get("name", "tool")
+                text_parts.append(f"\n🔧 Using tool: {name}\n")
+            elif delta_type == "tool_result":
+                output = delta.get("output", "")
+                text_parts.append(f"\n✅ Result: {output}\n")
+        except json.JSONDecodeError:
+            # If it's not valid JSON, treat as raw text (backward compat)
+            text_parts.append(line)
+    return "".join(text_parts)
 
 
 @app.event("message")
@@ -50,7 +81,7 @@ async def handle_message_events(body, logger, say, client):
         logger.error(f"Error posting placeholder: {e}")
         return
 
-    accumulated = ""
+    accumulated_lines = []
     last_update = time.time()
 
     try:
@@ -62,21 +93,23 @@ async def handle_message_events(body, logger, say, client):
                 timeout=60.0,
             ) as response:
                 async for chunk in response.aiter_text():
-                    accumulated += chunk
+                    accumulated_lines.append(chunk)
                     now = time.time()
                     if now - last_update >= 1.0:
+                        full_text = deltas_to_text(accumulated_lines)
                         await client.chat_update(
                             channel=channel,
                             ts=ts,
-                            text=accumulated or "💭 ...",
+                            text=full_text or "💭 ...",
                         )
                         last_update = now
 
         # Final update once the stream is complete
+        full_text = deltas_to_text(accumulated_lines)
         await client.chat_update(
             channel=channel,
             ts=ts,
-            text=accumulated or "Done.",
+            text=full_text or "Done.",
         )
     except Exception as e:
         logger.error(f"Error calling backend stream: {e}")
