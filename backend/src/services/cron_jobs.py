@@ -84,7 +84,8 @@ async def daily_task_digest() -> None:
         logger.info(f"Sent daily digest with {len(tasks)} task(s).")
 
 
-@cron_service.register("0 */6 * * *", name="crypto_price_update")
+# @cron_service.register("0 */6 * * *", name="crypto_price_update")
+@cron_service.register("* * * * *", name="crypto_price_update")
 async def crypto_price_update() -> None:
     """Fetch top 10 crypto prices and send a Slack DM every 6 hours."""
     logger.info("Running crypto_price_update...")
@@ -127,8 +128,8 @@ async def crypto_price_update() -> None:
     logger.info(f"Sent crypto update with {len(coins)} coin(s).")
 
 
-@cron_service.register("* * * * *", name="random_message")
-async def random_message() -> None:
-    """Send a random fun message every minute."""
-    message = random.choice(_DUMMY_MESSAGES)
-    await send_slack_dm(message)
+# @cron_service.register("* * * * *", name="random_message")
+# async def random_message() -> None:
+#     """Send a random fun message every minute."""
+#     message = random.choice(_DUMMY_MESSAGES)
+#     await send_slack_dm(message)
