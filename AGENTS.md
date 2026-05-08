@@ -17,8 +17,9 @@ Personal assistant (Chat, Kanban, Reminders, RAG) restricted to a single Google 
 ```bash
 cd backend
 source venv/bin/activate
+alembic upgrade head            # apply DB migrations (run once after pull / model changes)
 uvicorn src.main:app --reload   # dev server on :8000
-pytest                          # run tests (needs DB running)
+pytest                          # run tests (needs DB running + migrations applied)
 ruff check .                    # lint
 ruff check --fix .              # auto-fix
 ruff format .                   # format
@@ -43,11 +44,14 @@ python src/main.py
 ### Database
 ```bash
 docker-compose up -d   # pgvector/pgvector:pg16 on :5432
+cd backend
+source venv/bin/activate
+alembic upgrade head   # apply migrations after DB is up
 ```
 
 ## Architecture Notes
 
-- **No Alembic migrations yet**: `backend/src/main.py` calls `Base.metadata.create_all()` on startup. Do not look for migration scripts.
+- **Alembic migrations**: `backend/alembic/` is configured for async `postgresql+asyncpg`. `backend/src/main.py` no longer calls `Base.metadata.create_all()`; run `alembic upgrade head` manually before starting the app.
 - **Async SQLAlchemy 2.0 everywhere**: `create_async_engine`, `AsyncSession`, `mapped_column`, `Mapped[...]`. Never use sync engines or `session.query()`.
 - **Single-user hardcode**: Auth allows only `vinhho2508@gmail.com` via `ALLOWED_USER_EMAIL` in `backend/src/core/database.py` (`Settings`).
 - **Backend auto-creates `vector` extension** on startup (`CREATE EXTENSION IF NOT EXISTS vector`).
