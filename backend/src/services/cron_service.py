@@ -59,8 +59,7 @@ class CronService:
         parts = expr.split()
         if len(parts) != 5:
             raise ValueError(
-                f"Invalid cron expression '{expr}': "
-                "expected 5 fields (min hour day month dow)"
+                f"Invalid cron expression '{expr}': expected 5 fields (min hour day month dow)"
             )
         minute, hour, day, month, day_of_week = parts
         return {

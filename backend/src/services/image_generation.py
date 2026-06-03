@@ -71,9 +71,7 @@ class ImageGenerationService:
                 resp.raise_for_status()
                 image_data = resp.content
 
-            key = (
-                f"lifeos/images/{datetime.utcnow().isoformat()}_{uuid.uuid4()}.png"
-            )
+            key = f"lifeos/images/{datetime.utcnow().isoformat()}_{uuid.uuid4()}.png"
             self.s3_client.put_object(
                 Bucket=self.s3_bucket,
                 Key=key,
@@ -82,9 +80,7 @@ class ImageGenerationService:
             )
 
             # Build URL (assumes bucket is public or has presigned access)
-            url = (
-                f"https://{self.s3_bucket}.s3.{self.s3_region}.amazonaws.com/{key}"
-            )
+            url = f"https://{self.s3_bucket}.s3.{self.s3_region}.amazonaws.com/{key}"
             logger.info(f"Uploaded image to S3: {url}")
             return url
         except Exception as e:

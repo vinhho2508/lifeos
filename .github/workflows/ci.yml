@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint-backend:
+    name: Lint Backend (Ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Ruff lint
+        run: ruff check backend/
+
+      - name: Ruff format check
+        run: ruff format --check backend/
+
+  lint-frontend:
+    name: Lint Frontend (ESLint + Prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: ESLint
+        run: cd frontend && npm run lint
+
+      - name: Prettier check
+        run: npx prettier --check "**/*.{ts,tsx,js,jsx,json,css,md}" --ignore-path .prettierignore
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Ruff security rules
+        run: ruff check --select S backend/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm audit (frontend)
+        run: cd frontend && npm audit --audit-level=high
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          ignore-unfixed: true

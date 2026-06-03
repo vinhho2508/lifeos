@@ -1,6 +1,4 @@
 [tool.ruff]
-select = ["E", "F", "I"]
-fixable = ["ALL"]
 exclude = [
     ".git",
     ".ruff_cache",
@@ -12,5 +10,12 @@ exclude = [
 line-length = 100
 target-version = "py312"
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+select = ["E", "F", "I", "S"]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.ruff.lint.isort]
 known-first-party = ["src"]

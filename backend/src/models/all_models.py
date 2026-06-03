@@ -15,20 +15,24 @@ class StatusEnum(enum.Enum):
     WORKING = "WORKING"
     DONE = "DONE"
 
+
 class DocStatusEnum(enum.Enum):
     UPLOADED = "UPLOADED"
     DIGESTING = "DIGESTING"
     READY = "READY"
     ERROR = "ERROR"
 
+
 class SenderEnum(enum.Enum):
     USER = "USER"
     ASSISTANT = "ASSISTANT"
+
 
 class PlatformEnum(enum.Enum):
     WEB = "WEB"
     SLACK = "SLACK"
     CHROME_EXTENSION = "CHROME_EXTENSION"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -39,6 +43,7 @@ class User(Base):
     tasks: Mapped[List["Task"]] = relationship(back_populates="user")
     documents: Mapped[List["Document"]] = relationship(back_populates="user")
     messages: Mapped[List["Message"]] = relationship(back_populates="user")
+
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -53,6 +58,7 @@ class Task(Base):
 
     user: Mapped["User"] = relationship(back_populates="tasks")
 
+
 class Document(Base):
     __tablename__ = "documents"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -66,14 +72,16 @@ class Document(Base):
     user: Mapped["User"] = relationship(back_populates="documents")
     chunks: Mapped[List["DocumentChunk"]] = relationship(back_populates="document")
 
+
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id"))
     content: Mapped[str] = mapped_column(Text)
-    embedding: Mapped[Optional[Vector]] = mapped_column(Vector(1536)) # OpenAI size
+    embedding: Mapped[Optional[Vector]] = mapped_column(Vector(1536))  # OpenAI size
 
     document: Mapped["Document"] = relationship(back_populates="chunks")
+
 
 class Message(Base):
     __tablename__ = "messages"
@@ -86,3 +94,15 @@ class Message(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="messages")
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), unique=True)
+    chat_provider: Mapped[str] = mapped_column(String(50), default="openai")
+    chat_model: Mapped[str] = mapped_column(String(100), default="gpt-4o-mini")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )

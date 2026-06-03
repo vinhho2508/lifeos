@@ -7,10 +7,9 @@ from typing import Any, AsyncIterator, Dict, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
 
-from src.core.database import settings
 from src.core.logging import logger
+from src.providers.factory import get_chat_provider
 from src.services.image_generation import image_service
 
 # ---------------------------------------------------------------------------
@@ -37,18 +36,21 @@ TOOLS = [generate_image]
 # ---------------------------------------------------------------------------
 
 
-def extract_task_info(text: str) -> Dict[str, Any]:
+def extract_task_info(
+    text: str,
+    provider_name: str = "openai",
+    model: str = "gpt-4o-mini",
+) -> Dict[str, Any]:
     """Extract task title, description, and due date from free-form text."""
-    if not settings.OPENAI_API_KEY:
+    provider = get_chat_provider(provider_name, model)
+    if not provider.api_key:
         return {
             "title": text.replace("Remind me to ", ""),
             "description": None,
             "due_date": datetime.utcnow() + timedelta(hours=1),
         }
 
-    llm = ChatOpenAI(
-        openai_api_key=settings.OPENAI_API_KEY, model="gpt-5.4-2026-03-05"
-    )
+    llm = provider.get_langchain_llm(streaming=False)
     prompt = ChatPromptTemplate.from_template(
         "Extract task information from this message: {message}. "
         "Return JSON with 'title', 'description', and 'due_date' (ISO format). "
@@ -56,9 +58,7 @@ def extract_task_info(text: str) -> Dict[str, Any]:
     )
 
     chain = prompt | llm
-    response = chain.invoke(
-        {"message": text, "now": datetime.utcnow().isoformat()}
-    )
+    response = chain.invoke({"message": text, "now": datetime.utcnow().isoformat()})
 
     try:
         data = json.loads(response.content)
@@ -77,9 +77,7 @@ def extract_task_info(text: str) -> Dict[str, Any]:
 class ContentDelta:
     """A single delta emitted during streaming."""
 
-    def __init__(
-        self, delta_type: str, delta: str = "", extra: Optional[dict] = None
-    ):
+    def __init__(self, delta_type: str, delta: str = "", extra: Optional[dict] = None):
         self.type = delta_type
         self.delta = delta
         self.extra = extra or {}
@@ -93,10 +91,14 @@ async def stream_reply(
     message: str,
     context: str,
     task_info: Optional[Dict[str, Any]],
+    provider_name: str = "openai",
+    model: str = "gpt-4o-mini",
 ) -> AsyncIterator[ContentDelta]:
     """Yield structured reply deltas (text, thinking, image, tool_call, etc.)."""
 
-    if not settings.OPENAI_API_KEY:
+    provider = get_chat_provider(provider_name, model)
+
+    if not provider.api_key:
         # Mock streaming with structured blocks
         if context:
             reply = (
@@ -108,10 +110,7 @@ async def stream_reply(
         else:
             reply = f"I received your message: {message}."
 
-        # Emit a fake thinking block first
-        yield ContentDelta(
-            "thinking", "Analyzing the user request and available context..."
-        )
+        yield ContentDelta("thinking", "Analyzing the user request and available context...")
         await asyncio.sleep(0.2)
 
         words = reply.split()
@@ -122,14 +121,12 @@ async def stream_reply(
         return
 
     # Real LLM streaming with tool support
-    llm = ChatOpenAI(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model="gpt-5.4-2026-03-05",
-        streaming=True,
-    )
+    llm = provider.get_langchain_llm(streaming=True)
 
-    # Bind tools so the model can choose to call generate_image
-    llm_with_tools = llm.bind_tools(TOOLS)
+    if provider.supports_tool_calling():
+        llm_with_tools = llm.bind_tools(TOOLS)
+    else:
+        llm_with_tools = llm
 
     prompt = ChatPromptTemplate.from_template(
         "You are a helpful personal assistant.\n"
@@ -143,8 +140,6 @@ async def stream_reply(
     chain = prompt | llm_with_tools
     task_info_str = json.dumps(task_info, default=str) if task_info else "None"
 
-    # We accumulate the full assistant message to detect tool calls
-    accumulated_content = ""
     tool_calls: list[dict] = []
 
     async for chunk in chain.astream(
@@ -154,16 +149,10 @@ async def stream_reply(
             "task_info": task_info_str,
         }
     ):
-        # Handle tool call deltas
         if chunk.tool_call_chunks:
             for tc_chunk in chunk.tool_call_chunks:
-                # Accumulate tool call arguments
                 existing = next(
-                    (
-                        t
-                        for t in tool_calls
-                        if t.get("index") == tc_chunk.get("index")
-                    ),
+                    (t for t in tool_calls if t.get("index") == tc_chunk.get("index")),
                     None,
                 )
                 if existing is None:
@@ -175,19 +164,14 @@ async def stream_reply(
                         }
                     )
                 else:
-                    existing["name"] = (
-                        existing["name"] or tc_chunk.get("name", "")
-                    )
+                    existing["name"] = existing["name"] or tc_chunk.get("name", "")
                     existing["args"] += tc_chunk.get("args", "")
             continue
 
-        # Regular text content
         delta = chunk.content
         if delta:
-            accumulated_content += delta
             yield ContentDelta("text", delta)
 
-    # After streaming finishes, process any tool calls
     for tc in tool_calls:
         name = tc.get("name", "")
         args_str = tc.get("args", "")
@@ -198,17 +182,11 @@ async def stream_reply(
 
         if name == "generate_image":
             prompt_text = args.get("prompt", "")
-            # Yield thinking block
             yield ContentDelta("thinking", f"Generating image for: {prompt_text}")
-            # Execute image generation
             image_url = await image_service.generate_image(prompt_text)
             if image_url:
-                yield ContentDelta(
-                    "image", "", extra={"url": image_url, "alt": prompt_text}
-                )
+                yield ContentDelta("image", "", extra={"url": image_url, "alt": prompt_text})
             else:
-                yield ContentDelta(
-                    "text", "\n\n(Sorry, I couldn't generate the image.)"
-                )
+                yield ContentDelta("text", "\n\n(Sorry, I couldn't generate the image.)")
         else:
             logger.warning(f"Unknown tool call: {name}")

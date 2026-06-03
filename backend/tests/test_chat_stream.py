@@ -1,9 +1,11 @@
 import uuid
-import pytest
+
 import asyncpg
-from httpx import AsyncClient, ASGITransport
-from src.main import app
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 from src.core.database import settings
+from src.main import app
 
 
 @pytest.mark.asyncio
@@ -12,7 +14,8 @@ async def test_chat_stream():
     conn = await asyncpg.connect(dsn=settings.DATABASE_URL)
     try:
         await conn.execute(
-            "TRUNCATE TABLE document_chunks, documents, messages, tasks, users RESTART IDENTITY CASCADE"
+            "TRUNCATE TABLE document_chunks, documents, messages, tasks, users "
+            "RESTART IDENTITY CASCADE"
         )
     finally:
         await conn.close()

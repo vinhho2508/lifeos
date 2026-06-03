@@ -32,7 +32,7 @@ const Chat: React.FC = () => {
         })
         if (response.ok) {
           const data = await response.json()
-          const history: Message[] = data.map((m: any) => ({
+          const history: Message[] = data.map((m: Record<string, unknown>) => ({
             id: m.id,
             sender: m.sender,
             text: m.text,

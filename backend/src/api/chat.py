@@ -13,6 +13,7 @@ from src.models.all_models import (
 )
 from src.services.nlp import extract_task_info, stream_reply
 from src.services.rag_service import get_embeddings
+from src.services.settings_service import get_user_settings
 from src.services.task_service import create_task
 
 router = APIRouter()
@@ -31,10 +32,13 @@ class ChatStreamRequest(BaseModel):
 @router.post("/")
 async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     from src.models.all_models import User
+
     res = await db.execute(select(User).limit(1))
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401)
+
+    user_settings = await get_user_settings(db)
 
     # Save user message
     user_msg = Message(
@@ -57,7 +61,11 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     context = "\n".join(context_chunks)
 
     # Process with NLP
-    info = extract_task_info(f"Context: {context}\nQuestion: {req.message}")
+    info = extract_task_info(
+        f"Context: {context}\nQuestion: {req.message}",
+        provider_name=user_settings.chat_provider,
+        model=user_settings.chat_model,
+    )
 
     # Build reply content blocks
     content_blocks: list[dict] = []
@@ -68,9 +76,7 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
 
     if info.get("due_date") and not context:
         reply_text += f" for {info['due_date']}"
-        await create_task(
-            db, user.id, info["title"], info.get("description"), info["due_date"]
-        )
+        await create_task(db, user.id, info["title"], info.get("description"), info["due_date"])
     elif not context:
         await create_task(db, user.id, info["title"], info.get("description"))
 
@@ -100,8 +106,12 @@ async def chat_stream(req: ChatStreamRequest):
         if not user:
             raise HTTPException(status_code=401)
         user_id = user.id
+        user_settings = await get_user_settings(db)
 
     async def generate():
+        provider_name = user_settings.chat_provider
+        model = user_settings.chat_model
+
         async with async_session_factory() as db:
             # Save user message
             user_msg = Message(
@@ -124,7 +134,11 @@ async def chat_stream(req: ChatStreamRequest):
             context = "\n".join(context_chunks)
 
             # Process with NLP
-            info = extract_task_info(f"Context: {context}\nQuestion: {req.message}")
+            info = extract_task_info(
+                f"Context: {context}\nQuestion: {req.message}",
+                provider_name=provider_name,
+                model=model,
+            )
 
             # Create task if applicable
             if info.get("due_date") and not context:
@@ -139,7 +153,13 @@ async def chat_stream(req: ChatStreamRequest):
             current_text = ""
             current_thinking = ""
 
-            async for delta in stream_reply(req.message, context, info):
+            async for delta in stream_reply(
+                req.message,
+                context,
+                info,
+                provider_name=provider_name,
+                model=model,
+            ):
                 # Yield the delta as an NDJSON line
                 yield delta.to_json() + "\n"
 
@@ -151,9 +171,7 @@ async def chat_stream(req: ChatStreamRequest):
                 elif delta.type == "image":
                     # Flush any pending text/thinking first
                     if current_text:
-                        accumulated_blocks.append(
-                            {"type": "text", "text": current_text}
-                        )
+                        accumulated_blocks.append({"type": "text", "text": current_text})
                         current_text = ""
                     if current_thinking:
                         accumulated_blocks.append(
@@ -170,9 +188,7 @@ async def chat_stream(req: ChatStreamRequest):
 
             # Flush remaining accumulated text/thinking
             if current_thinking:
-                accumulated_blocks.append(
-                    {"type": "thinking", "thinking": current_thinking}
-                )
+                accumulated_blocks.append({"type": "thinking", "thinking": current_thinking})
             if current_text:
                 accumulated_blocks.append({"type": "text", "text": current_text})
 
@@ -203,14 +219,13 @@ async def chat_stream(req: ChatStreamRequest):
 @router.get("/history")
 async def get_history(db: AsyncSession = Depends(get_db)):
     from src.models.all_models import User
+
     res = await db.execute(select(User).limit(1))
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401)
 
     result = await db.execute(
-        select(Message)
-        .where(Message.user_id == user.id)
-        .order_by(Message.timestamp.asc())
+        select(Message).where(Message.user_id == user.id).order_by(Message.timestamp.asc())
     )
     return result.scalars().all()

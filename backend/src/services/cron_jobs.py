@@ -1,4 +1,3 @@
-import random
 from datetime import datetime
 
 import httpx
@@ -55,9 +54,7 @@ async def daily_task_digest() -> None:
     """Send a morning summary of TODO and WORKING tasks."""
     logger.info("Running daily_task_digest...")
     async with async_session_factory() as db:
-        user = await db.execute(
-            select(User).where(User.email == settings.ALLOWED_USER_EMAIL)
-        )
+        user = await db.execute(select(User).where(User.email == settings.ALLOWED_USER_EMAIL))
         user = user.scalar_one_or_none()
         if not user:
             logger.warning("daily_task_digest: no user found.")
@@ -119,9 +116,7 @@ async def crypto_price_update() -> None:
             emoji = "🔴"
         else:
             emoji = "⚪"
-        lines.append(
-            f"{i}. {coin['name']} ({symbol}): ${price:,.2f} {emoji} {change_str}"
-        )
+        lines.append(f"{i}. {coin['name']} ({symbol}): ${price:,.2f} {emoji} {change_str}")
 
     await send_slack_dm("\n".join(lines))
     logger.info(f"Sent crypto update with {len(coins)} coin(s).")
