@@ -5,6 +5,7 @@ import ChatPage from './pages/ChatPage'
 import TasksPage from './pages/TasksPage'
 import KnowledgeBasePage from './pages/KnowledgeBasePage'
 import Layout from './components/Layout/Layout'
+import SettingsPage from './pages/SettingsPage'
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem('token')
@@ -32,6 +33,7 @@ function App() {
             <Route path="chat" element={<ChatPage />} />
             <Route path="tasks" element={<TasksPage />} />
             <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </div>

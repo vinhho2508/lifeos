@@ -1,12 +1,13 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
-import { MessageSquare, Layout, FileText } from 'lucide-react'
+import { MessageSquare, Layout, FileText, Settings } from 'lucide-react'
 import { ThemeToggle } from '../ThemeToggle'
 
 const navItems = [
   { path: '/chat', label: 'Chat', icon: MessageSquare },
   { path: '/tasks', label: 'Tasks', icon: Layout },
   { path: '/knowledge-base', label: 'Knowledge Base', icon: FileText },
+  { path: '/settings', label: 'Settings', icon: Settings },
 ]
 
 const Sidebar: React.FC = () => {

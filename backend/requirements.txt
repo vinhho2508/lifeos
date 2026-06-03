@@ -9,6 +9,8 @@ google-auth
 google-auth-oauthlib
 google-auth-httplib2
 langchain
+langchain-anthropic
+langchain-google-genai
 langchain-openai
 langchain-text-splitters
 openai
