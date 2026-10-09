@@ -3,12 +3,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Save, Check } from 'lucide-react'
-import { fetchSettings, updateSettings, ProviderInfo } from '../services/settingsApi'
+import {
+  browserTimezone,
+  fetchSettings,
+  updateSettings,
+  ProviderInfo,
+} from '../services/settingsApi'
+
+// Intl.supportedValuesOf is ES2022; tsconfig targets the ES2020 lib.
+const TIMEZONES: string[] =
+  (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone') ??
+  []
 
 const SettingsPage: React.FC = () => {
   const [providers, setProviders] = useState<Record<string, ProviderInfo>>({})
   const [selectedProvider, setSelectedProvider] = useState('')
   const [selectedModel, setSelectedModel] = useState('')
+  const [timezone, setTimezone] = useState(browserTimezone())
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -22,6 +33,7 @@ const SettingsPage: React.FC = () => {
       setProviders(data.available_providers)
       setSelectedProvider(data.settings.chat_provider)
       setSelectedModel(data.settings.chat_model)
+      setTimezone(data.settings.timezone)
     } catch {
       // API not ready yet
     }
@@ -34,6 +46,7 @@ const SettingsPage: React.FC = () => {
       await updateSettings({
         chat_provider: selectedProvider,
         chat_model: selectedModel,
+        timezone,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -89,6 +102,25 @@ const SettingsPage: React.FC = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="timezone">Timezone</Label>
+            <select
+              id="timezone"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {(TIMEZONES.includes(timezone) ? TIMEZONES : [timezone, ...TIMEZONES]).map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Used to schedule tasks from chat, like &ldquo;Friday 9am&rdquo;.
+            </p>
           </div>
 
           <Button onClick={handleSave} disabled={saving}>

@@ -1,11 +1,12 @@
 import os
 import time
-import json
 from dotenv import load_dotenv, find_dotenv
 from slack_bolt.app.async_app import AsyncApp
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 import httpx
 import asyncio
+
+from stream_format import deltas_to_text
 
 # Load environment variables
 load_dotenv(find_dotenv())
@@ -19,36 +20,10 @@ if not SLACK_BOT_TOKEN or not SLACK_APP_TOKEN:
 # Setup Async Bolt App
 app = AsyncApp(token=SLACK_BOT_TOKEN)
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
-
-
-def deltas_to_text(lines: list[str]) -> str:
-    """Parse NDJSON deltas and convert to plain text for Slack."""
-    text_parts = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            delta = json.loads(line)
-            delta_type = delta.get("type", "")
-            if delta_type == "text":
-                text_parts.append(delta.get("delta", ""))
-            elif delta_type == "thinking":
-                text_parts.append(f"\n💭 {delta.get('delta', '')}\n")
-            elif delta_type == "image":
-                url = delta.get("url", "")
-                alt = delta.get("alt", "image")
-                text_parts.append(f"\n🖼️ [{alt}]({url})\n")
-            elif delta_type == "tool_call":
-                name = delta.get("name", "tool")
-                text_parts.append(f"\n🔧 Using tool: {name}\n")
-            elif delta_type == "tool_result":
-                output = delta.get("output", "")
-                text_parts.append(f"\n✅ Result: {output}\n")
-        except json.JSONDecodeError:
-            # If it's not valid JSON, treat as raw text (backward compat)
-            text_parts.append(line)
-    return "".join(text_parts)
+# Shared secret the backend accepts as X-Service-Token (set the same value in backend/.env).
+SLACK_SERVICE_TOKEN = os.environ.get("SLACK_SERVICE_TOKEN", "")
+# Agent runs can call several tools (image generation is slow).
+STREAM_TIMEOUT = 180.0
 
 
 @app.event("message")
@@ -81,7 +56,7 @@ async def handle_message_events(body, logger, say, client):
         logger.error(f"Error posting placeholder: {e}")
         return
 
-    accumulated_lines = []
+    raw = ""
     last_update = time.time()
 
     try:
@@ -90,26 +65,33 @@ async def handle_message_events(body, logger, say, client):
                 "POST",
                 f"{BACKEND_URL}/chat/stream",
                 json={"message": text, "platform": "SLACK"},
-                timeout=60.0,
+                headers={"X-Service-Token": SLACK_SERVICE_TOKEN},
+                timeout=STREAM_TIMEOUT,
             ) as response:
+                if response.status_code == 401:
+                    await client.chat_update(
+                        channel=channel,
+                        ts=ts,
+                        text="⚠️ The backend rejected me: check SLACK_SERVICE_TOKEN matches.",
+                    )
+                    return
+                response.raise_for_status()
                 async for chunk in response.aiter_text():
-                    accumulated_lines.append(chunk)
+                    raw += chunk
                     now = time.time()
                     if now - last_update >= 1.0:
-                        full_text = deltas_to_text(accumulated_lines)
                         await client.chat_update(
                             channel=channel,
                             ts=ts,
-                            text=full_text or "💭 ...",
+                            text=deltas_to_text(raw) or "💭 ...",
                         )
                         last_update = now
 
         # Final update once the stream is complete
-        full_text = deltas_to_text(accumulated_lines)
         await client.chat_update(
             channel=channel,
             ts=ts,
-            text=full_text or "Done.",
+            text=deltas_to_text(raw if raw.endswith("\n") else raw + "\n") or "Done.",
         )
     except Exception as e:
         logger.error(f"Error calling backend stream: {e}")

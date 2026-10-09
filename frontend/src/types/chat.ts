@@ -23,14 +23,23 @@ export interface CitationBlock {
 
 export interface ToolCallBlock {
   type: 'tool_call'
+  id: string
   name: string
   input: Record<string, unknown>
 }
 
 export interface ToolResultBlock {
   type: 'tool_result'
+  id: string
   name: string
-  output: string
+  status: 'ok' | 'error'
+  summary: string
+  output: unknown
+}
+
+export interface ErrorBlock {
+  type: 'error'
+  message: string
 }
 
 export type ContentBlock =
@@ -40,6 +49,7 @@ export type ContentBlock =
   | CitationBlock
   | ToolCallBlock
   | ToolResultBlock
+  | ErrorBlock
 
 export interface Message {
   id?: string
@@ -49,9 +59,11 @@ export interface Message {
   timestamp: string
 }
 
+/** One NDJSON line from POST /chat/stream (specs/002-agent-loop/contracts/chat-stream.md). */
 export interface ContentDelta {
   type: string
-  delta: string
+  delta?: string
+  id?: string
   url?: string
   alt?: string
   document_id?: string
@@ -59,5 +71,9 @@ export interface ContentDelta {
   source_name?: string
   name?: string
   input?: Record<string, unknown>
-  output?: string
+  status?: 'ok' | 'error'
+  summary?: string
+  output?: unknown
+  message?: string
+  stop_reason?: 'end_turn' | 'max_steps' | 'error'
 }

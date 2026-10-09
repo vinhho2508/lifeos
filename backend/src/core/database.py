@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     SLACK_BOT_TOKEN: str = ""
     SLACK_DM_USER_ID: str = ""
     SLACK_SIGNING_SECRET: str = ""
+    # Shared secret the Slack bot sends as X-Service-Token; empty disables service auth.
+    SLACK_SERVICE_TOKEN: str = ""
     S3_BUCKET_NAME: str = ""
     AWS_REGION: str = "us-east-1"
     SECRET_KEY: str = ""

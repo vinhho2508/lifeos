@@ -1,192 +1,51 @@
-"""NLP services: task extraction, streaming replies, and tool use."""
+"""One-shot task extraction for the Slack 📌 reaction (/tasks/from-message).
 
-import asyncio
-import json
-from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Dict, Optional
+Chat no longer uses this: the agent decides when to create tasks (src/agent).
+"""
 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import tool
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from pydantic import BaseModel, Field
 
 from src.core.logging import logger
 from src.providers.factory import get_chat_provider
-from src.services.image_generation import image_service
-
-# ---------------------------------------------------------------------------
-# Tool definitions
-# ---------------------------------------------------------------------------
+from src.services.task_service import parse_due_date
 
 
-@tool
-def generate_image(prompt: str) -> str:
-    """Generate an image from a text prompt using DALL-E 3.
-
-    Use this when the user asks for a picture, image, diagram, or visual
-    representation of something.
-    """
-    # Synchronous wrapper; the async caller will handle the real execution
-    return f"[IMAGE:{prompt}]"
+class ExtractedTask(BaseModel):
+    title: str = Field(description="Short imperative task title")
+    description: str | None = Field(default=None, description="Extra details, if any")
+    due_date: str | None = Field(
+        default=None,
+        description="ISO-8601 local date/time if the text states one, else null",
+    )
 
 
-TOOLS = [generate_image]
-
-
-# ---------------------------------------------------------------------------
-# Task extraction
-# ---------------------------------------------------------------------------
-
-
-def extract_task_info(
+async def extract_task_info(
     text: str,
     provider_name: str = "openai",
-    model: str = "gpt-4o-mini",
-) -> Dict[str, Any]:
-    """Extract task title, description, and due date from free-form text."""
+    model: str = "gpt-5.4-nano",
+    timezone: str = "UTC",
+) -> dict:
+    """Extract title, description and due date (aware UTC datetime or None) from text."""
     provider = get_chat_provider(provider_name, model)
     if not provider.api_key:
         return {
-            "title": text.replace("Remind me to ", ""),
+            "title": text.replace("Remind me to ", "")[:255],
             "description": None,
-            "due_date": datetime.utcnow() + timedelta(hours=1),
+            "due_date": None,
         }
 
-    llm = provider.get_langchain_llm(streaming=False)
-    prompt = ChatPromptTemplate.from_template(
-        "Extract task information from this message: {message}. "
-        "Return JSON with 'title', 'description', and 'due_date' (ISO format). "
-        "Current time is {now}."
-    )
-
-    chain = prompt | llm
-    response = chain.invoke({"message": text, "now": datetime.utcnow().isoformat()})
-
+    llm = provider.get_langchain_llm(streaming=False).with_structured_output(ExtractedTask)
+    now = datetime.now(ZoneInfo(timezone)).isoformat(timespec="minutes")
     try:
-        data = json.loads(response.content)
-        if data.get("due_date"):
-            data["due_date"] = datetime.fromisoformat(data["due_date"])
-        return data
-    except Exception:
-        return {"title": text, "description": None, "due_date": None}
-
-
-# ---------------------------------------------------------------------------
-# Structured streaming
-# ---------------------------------------------------------------------------
-
-
-class ContentDelta:
-    """A single delta emitted during streaming."""
-
-    def __init__(self, delta_type: str, delta: str = "", extra: Optional[dict] = None):
-        self.type = delta_type
-        self.delta = delta
-        self.extra = extra or {}
-
-    def to_json(self) -> str:
-        payload = {"type": self.type, "delta": self.delta, **self.extra}
-        return json.dumps(payload)
-
-
-async def stream_reply(
-    message: str,
-    context: str,
-    task_info: Optional[Dict[str, Any]],
-    provider_name: str = "openai",
-    model: str = "gpt-4o-mini",
-) -> AsyncIterator[ContentDelta]:
-    """Yield structured reply deltas (text, thinking, image, tool_call, etc.)."""
-
-    provider = get_chat_provider(provider_name, model)
-
-    if not provider.api_key:
-        # Mock streaming with structured blocks
-        if context:
-            reply = (
-                f"Based on your documents, here's what I found regarding "
-                f"{task_info['title'] if task_info else 'that'}."
-            )
-        elif task_info:
-            reply = f"I've noted your task: {task_info['title']}."
-        else:
-            reply = f"I received your message: {message}."
-
-        yield ContentDelta("thinking", "Analyzing the user request and available context...")
-        await asyncio.sleep(0.2)
-
-        words = reply.split()
-        for i, word in enumerate(words):
-            suffix = " " if i < len(words) - 1 else ""
-            yield ContentDelta("text", word + suffix)
-            await asyncio.sleep(0.05)
-        return
-
-    # Real LLM streaming with tool support
-    llm = provider.get_langchain_llm(streaming=True)
-
-    if provider.supports_tool_calling():
-        llm_with_tools = llm.bind_tools(TOOLS)
-    else:
-        llm_with_tools = llm
-
-    prompt = ChatPromptTemplate.from_template(
-        "You are a helpful personal assistant.\n"
-        "User message: {message}\n"
-        "Document context: {context}\n"
-        "Task info: {task_info}\n"
-        "Provide a concise, conversational response. "
-        "If the user asks for an image, use the generate_image tool."
-    )
-
-    chain = prompt | llm_with_tools
-    task_info_str = json.dumps(task_info, default=str) if task_info else "None"
-
-    tool_calls: list[dict] = []
-
-    async for chunk in chain.astream(
-        {
-            "message": message,
-            "context": context or "None",
-            "task_info": task_info_str,
-        }
-    ):
-        if chunk.tool_call_chunks:
-            for tc_chunk in chunk.tool_call_chunks:
-                existing = next(
-                    (t for t in tool_calls if t.get("index") == tc_chunk.get("index")),
-                    None,
-                )
-                if existing is None:
-                    tool_calls.append(
-                        {
-                            "index": tc_chunk.get("index"),
-                            "name": tc_chunk.get("name", ""),
-                            "args": tc_chunk.get("args", ""),
-                        }
-                    )
-                else:
-                    existing["name"] = existing["name"] or tc_chunk.get("name", "")
-                    existing["args"] += tc_chunk.get("args", "")
-            continue
-
-        delta = chunk.content
-        if delta:
-            yield ContentDelta("text", delta)
-
-    for tc in tool_calls:
-        name = tc.get("name", "")
-        args_str = tc.get("args", "")
-        try:
-            args = json.loads(args_str) if args_str else {}
-        except json.JSONDecodeError:
-            args = {}
-
-        if name == "generate_image":
-            prompt_text = args.get("prompt", "")
-            yield ContentDelta("thinking", f"Generating image for: {prompt_text}")
-            image_url = await image_service.generate_image(prompt_text)
-            if image_url:
-                yield ContentDelta("image", "", extra={"url": image_url, "alt": prompt_text})
-            else:
-                yield ContentDelta("text", "\n\n(Sorry, I couldn't generate the image.)")
-        else:
-            logger.warning(f"Unknown tool call: {name}")
+        result: ExtractedTask = await llm.ainvoke(
+            f"Extract a task from this message. Current local time is {now} ({timezone}).\n\n"
+            f"Message: {text}"
+        )
+        due = parse_due_date(result.due_date, timezone)
+    except Exception as exc:
+        logger.warning(f"Task extraction failed ({type(exc).__name__}); using raw text")
+        return {"title": text[:255], "description": None, "due_date": None}
+    return {"title": result.title[:255], "description": result.description, "due_date": due}

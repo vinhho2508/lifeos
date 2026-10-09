@@ -5,7 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_db
 from src.models.all_models import User
 from src.providers.models import AVAILABLE_PROVIDERS
-from src.services.settings_service import get_user_settings, update_user_settings
+from src.services.settings_service import (
+    get_user_settings,
+    is_valid_timezone,
+    update_user_settings,
+)
 
 router = APIRouter()
 
@@ -13,6 +17,7 @@ router = APIRouter()
 class UpdateSettingsRequest(BaseModel):
     chat_provider: str | None = None
     chat_model: str | None = None
+    timezone: str | None = None
 
 
 @router.get("/")
@@ -24,11 +29,12 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401)
 
-    settings = await get_user_settings(db)
+    settings = await get_user_settings(db, user.id)
     return {
         "settings": {
             "chat_provider": settings.chat_provider,
             "chat_model": settings.chat_model,
+            "timezone": settings.timezone,
         },
         "available_providers": AVAILABLE_PROVIDERS,
     }
@@ -55,7 +61,7 @@ async def update_settings(req: UpdateSettingsRequest, db: AsyncSession = Depends
     if req.chat_model is not None:
         provider_name = req.chat_provider
         if not provider_name:
-            current = await get_user_settings(db)
+            current = await get_user_settings(db, user.id)
             provider_name = current.chat_provider
         available = AVAILABLE_PROVIDERS.get(provider_name, {}).get("models", [])
         if req.chat_model not in available:
@@ -67,6 +73,11 @@ async def update_settings(req: UpdateSettingsRequest, db: AsyncSession = Depends
         if req.chat_provider is None:
             update_data["chat_provider"] = provider_name
 
+    if req.timezone is not None:
+        if not is_valid_timezone(req.timezone):
+            raise HTTPException(status_code=422, detail=f"Unknown timezone: {req.timezone}")
+        update_data["timezone"] = req.timezone
+
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -75,6 +86,7 @@ async def update_settings(req: UpdateSettingsRequest, db: AsyncSession = Depends
         "settings": {
             "chat_provider": settings.chat_provider,
             "chat_model": settings.chat_model,
+            "timezone": settings.timezone,
         },
         "available_providers": AVAILABLE_PROVIDERS,
     }

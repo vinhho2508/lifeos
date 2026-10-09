@@ -13,7 +13,7 @@ Personal life assistant with AI-powered chat, Kanban task board, document Q&A, a
 | Slack Bot | Slack Bolt (Python), Socket Mode |
 | Chrome Extension | React 18, TypeScript, Vite 5, Chrome Extension APIs |
 | Database | PostgreSQL 16 + pgvector |
-| AI | OpenAI GPT-4o, DALL·E 3, text-embedding-3-small |
+| AI | Tool-calling agent on LangChain v1 / LangGraph; OpenAI (default GPT-5.4 nano), Anthropic or Gemini for chat; GPT Image 1.5, text-embedding-3-small |
 | Auth | Google OAuth 2.0, JWT |
 | Infra | Docker Compose, APScheduler, Alembic |
 
@@ -32,11 +32,35 @@ Personal life assistant with AI-powered chat, Kanban task board, document Q&A, a
             │        (:8000)              │
             └──────┬──────────────┬──────┘
                    │              │
-          ┌────────▼──────┐  ┌───▼──────────┐
-          │  PostgreSQL   │  │    OpenAI     │
-          │  + pgvector   │  │     API       │
-          └───────────────┘  └──────────────┘
+          ┌────────▼──────┐  ┌───▼──────────────────────┐
+          │  PostgreSQL   │  │ OpenAI / Anthropic /     │
+          │  + pgvector   │  │ Gemini                   │
+          └───────────────┘  └──────────────────────────┘
 ```
+
+### The chat agent
+
+Every chat message (web, Slack, extension) runs a tool-calling loop in `backend/src/agent/`:
+
+```
+POST /chat/stream ─auth─▶ save user message ─▶ background run ──▶ queue ──▶ NDJSON stream
+                                                   │
+      create_agent(model, tools, middleware) ◀─────┘   history: last 20 messages, all platforms
+        │  model ──▶ tool calls? ──yes──▶ tools ──▶ results back to the model ──▶ repeat
+        │                          no ──▶ final answer
+        ├─ tools: search_documents · create_task · list_tasks · update_task · generate_image
+        └─ middleware: time-aware system prompt (user timezone) · per-tool timeout + errors
+                       returned to the model · 8-step cap · provider retry on 429/5xx
+```
+
+- The model decides which tools to use; small talk never creates tasks.
+- Each tool step streams to the client (`tool_call` / `tool_result` with a shared `id`) and is
+  saved in the message, so follow-ups like "push it to Monday" work across platforms.
+- Runs continue if the client disconnects; each completed step is saved as it happens.
+- Without an API key for the selected provider, a scripted demo model drives the same tools.
+
+Stream format: [specs/002-agent-loop/contracts/chat-stream.md](specs/002-agent-loop/contracts/chat-stream.md).
+Design decisions: [specs/002-agent-loop/research.md](specs/002-agent-loop/research.md).
 
 ## Quick Start
 
@@ -65,7 +89,22 @@ cp .env.sample .env      # edit .env with your keys (see table below)
 uvicorn src.main:app --reload
 ```
 
-API runs on `http://localhost:8000`.
+API runs on `http://localhost:8000`. Database migrations (Alembic) run automatically at startup;
+a database created by an older version is detected and upgraded in place.
+
+Tests use a separate `<db>_test` database (created once with
+`docker compose exec db createdb -U user lifeos_test`) and never call an LLM:
+
+```bash
+python -m pytest
+```
+
+To check tool choice against real providers (a few cents per provider; providers without a key
+are skipped):
+
+```bash
+python -m scripts.agent_smoke_eval            # or: ... openai anthropic
+```
 
 ### 3. Frontend
 
@@ -87,7 +126,8 @@ pip install -r requirements.txt
 python src/main.py
 ```
 
-Requires `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, and `SLACK_SIGNING_SECRET`.
+Requires `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_SIGNING_SECRET`, and `SLACK_SERVICE_TOKEN`
+(the same value as in `backend/.env`; the bot uses it to authenticate to the backend).
 
 ### 5. (Optional) Chrome Extension
 
@@ -105,10 +145,11 @@ Load `dist/` as an unpacked extension in `chrome://extensions/`. See [chrome_ext
 | Variable | Purpose | File |
 |---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string | `backend/.env` |
-| `OPENAI_API_KEY` | OpenAI key for chat, embeddings, images | `backend/.env` |
+| `OPENAI_API_KEY` | OpenAI key for chat, embeddings, images (without it, chat runs a demo model) | `backend/.env` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | `backend/.env` |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `backend/.env` |
 | `ALLOWED_USER_EMAIL` | Email of the single authorized user | `backend/.env` |
+| `SECRET_KEY` | JWT signing secret; chat rejects JWTs while it is empty | `backend/.env` |
 | `VITE_GOOGLE_CLIENT_ID` | Same Google OAuth client ID (exposed to browser) | `frontend/.env` |
 | `VITE_API_URL` | Backend API base URL (default: `http://localhost:8000`) | `frontend/.env` |
 
@@ -120,9 +161,10 @@ Load `dist/` as an unpacked extension in `chrome://extensions/`. See [chrome_ext
 | `SLACK_DM_USER_ID` | Slack user ID to receive DMs | `backend/.env` |
 | `SLACK_SIGNING_SECRET` | Slack signing secret | `backend/.env` |
 | `SLACK_APP_TOKEN` | Slack Socket Mode token | `slack_bot/.env` |
+| `SLACK_SERVICE_TOKEN` | Shared secret the Slack bot uses to call `/chat/stream` | `backend/.env` and `slack_bot/.env` |
+| `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Keys for the other chat providers (pick one in Settings) | `backend/.env` |
 | `S3_BUCKET_NAME` | S3 bucket for file uploads | `backend/.env` |
 | `AWS_REGION` | AWS region for S3 (default: `us-east-1`) | `backend/.env` |
-| `SECRET_KEY` | JWT signing secret (default: `supersecretkey`) | `backend/.env` |
 
 For the complete reference, see `specs/001-lifeos-assistant/quickstart.md`.
 
@@ -140,9 +182,11 @@ Chat with the assistant through three surfaces:
 
 Visit `/tasks` to manage tasks on a drag-and-drop board: **Todo → Working → Done**. Drag cards between columns or use the arrow buttons to change status.
 
-### Task Extraction from Chat
+### Tasks from Chat
 
-Ask the AI to create a task — e.g. *"Remind me to call Mom at 6pm"*. The assistant extracts the task automatically via NLP and adds it to your board.
+Ask the assistant to add, list or change tasks — e.g. *"Remind me to call Mom at 6pm"*, *"what's
+overdue?"*, *"mark the first one done"*. Relative dates resolve in the timezone set on the
+Settings page (it defaults to your browser's timezone).
 
 ### Slack Integration
 
@@ -171,7 +215,7 @@ All require Slack to be configured.
 Select text on any webpage to reveal a floating LifeOS icon. Click it to open the side panel with two modes:
 
 - **With Backend**: Connects to your running LifeOS backend. Requires you to be logged into the web app — the extension reads the JWT from `localStorage`.
-- **Direct OpenAI**: Uses your own API key directly, no backend required.
+- **Direct OpenAI**: Uses your own API key directly, no backend required. Plain chat only: no tools.
 
 Chat about selected text or click **"Add as Task"** to create a task from it. Local history is capped at 50 messages. See [chrome_extension/README.md](chrome_extension/README.md) for details.
 
@@ -181,6 +225,7 @@ Toggle between dark and light themes using the sun/moon button in the sidebar. Y
 
 ## Further Documentation
 
+- [specs/002-agent-loop/](specs/002-agent-loop/) — agent loop spec, design decisions, stream contract
 - [specs/001-lifeos-assistant/quickstart.md](specs/001-lifeos-assistant/quickstart.md) — detailed setup and development workflow
 - [chrome_extension/README.md](chrome_extension/README.md) — Chrome extension setup and architecture
 - [AGENTS.md](AGENTS.md) — developer reference (commands, conventions, architecture notes)

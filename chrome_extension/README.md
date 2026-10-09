@@ -40,7 +40,7 @@ This generates the `dist/` folder with all extension files.
 1. Click the extension icon in the toolbar to open the settings popup
 2. Choose your mode:
    - **With Backend**: Make sure your LifeOS web app is running at `http://localhost:5173` and you are logged in
-   - **Direct (OpenAI)**: Enter your OpenAI API key and preferred model (default: `gpt-4o-mini`)
+   - **Direct (OpenAI)**: Enter your OpenAI API key and preferred model (default: `gpt-5.4-nano`)
 
 ### 5. Use
 
