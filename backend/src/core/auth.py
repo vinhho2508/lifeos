@@ -12,6 +12,8 @@ from src.models.all_models import User
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    if not settings.SECRET_KEY:
+        raise RuntimeError("SECRET_KEY is not set; refusing to issue an unverifiable token")
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta

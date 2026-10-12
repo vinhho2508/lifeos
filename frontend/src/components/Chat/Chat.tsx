@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Message, ContentBlock, ContentDelta } from '@/types/chat'
 import { syncBrowserTimezone } from '@/services/settingsApi'
+import { handleUnauthorized } from '@/services/api'
 import MessageBubble from './MessageBubble'
 import ThinkingAnimation from './ThinkingAnimation'
 
@@ -31,6 +32,10 @@ const Chat: React.FC = () => {
             Authorization: token ? `Bearer ${token}` : '',
           },
         })
+        if (response.status === 401) {
+          handleUnauthorized()
+          return
+        }
         if (response.ok) {
           const data = await response.json()
           const history: Message[] = data.map((m: Record<string, unknown>) => ({
@@ -75,6 +80,10 @@ const Chat: React.FC = () => {
         body: JSON.stringify({ message: input }),
       })
 
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
