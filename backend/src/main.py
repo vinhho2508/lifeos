@@ -23,6 +23,10 @@ async def lifespan(app: FastAPI):
     from src.services.cron_service import cron_service
 
     cron_service.start()
+
+    from src.services.rag.ingest import sweep_pending
+
+    await sweep_pending()
     yield
     await close_checkpointer()
 

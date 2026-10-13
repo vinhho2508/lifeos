@@ -6,6 +6,7 @@ whose name does not end in "_test", because they truncate tables.
 """
 
 import os
+import tempfile
 
 from tests.db_url import is_test_database, test_database_url
 
@@ -16,6 +17,7 @@ for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "S3_BUCKET_
 os.environ["SECRET_KEY"] = "test-secret-key"  # noqa: S105
 os.environ["SLACK_SERVICE_TOKEN"] = "test-service-token"  # noqa: S105
 os.environ["ALLOWED_USER_EMAIL"] = "owner@example.com"
+os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="lifeos-test-uploads-")
 
 if not is_test_database(os.environ["DATABASE_URL"]):
     raise RuntimeError("Refusing to run tests against a non-*_test database")
@@ -97,3 +99,23 @@ async def client():
     # ASGITransport does not run the lifespan: no cron, no checkpointer (runs use none).
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
+
+
+@pytest.fixture(autouse=True)
+def scheduled_digests(monkeypatch) -> list:
+    """Record digests instead of running them in the background; tests digest explicitly."""
+    from src.services.rag import embeddings, ingest
+
+    scheduled: list = []
+    monkeypatch.setattr(ingest, "schedule_digest", lambda doc_id: scheduled.append(doc_id) or True)
+    yield scheduled
+    embeddings.set_embedder(None)
+
+
+@pytest.fixture
+def fake_embeddings():
+    from src.services.rag import embeddings
+    from tests.rag_helpers import fake_embed
+
+    embeddings.set_embedder(fake_embed)
+    return fake_embed

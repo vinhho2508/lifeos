@@ -19,6 +19,8 @@ export interface CitationBlock {
   document_id: string
   chunk_text: string
   source_name: string
+  page?: number | null
+  heading_path?: string | null
 }
 
 export interface ToolCallBlock {

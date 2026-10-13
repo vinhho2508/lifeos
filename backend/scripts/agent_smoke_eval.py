@@ -29,6 +29,7 @@ from src.agent import runner  # noqa: E402
 from src.core.database import async_session_factory, engine  # noqa: E402
 from src.core.migrations import run_migrations  # noqa: E402
 from src.models.all_models import (  # noqa: E402
+    DocStatusEnum,
     Document,
     DocumentChunk,
     PlatformEnum,
@@ -38,7 +39,7 @@ from src.models.all_models import (  # noqa: E402
 from src.providers.factory import get_chat_provider  # noqa: E402
 from src.providers.models import AVAILABLE_PROVIDERS  # noqa: E402
 from src.services import task_service  # noqa: E402
-from src.services.rag_service import get_embeddings  # noqa: E402
+from src.services.rag.embeddings import embed  # noqa: E402
 
 TIMEZONE = "Asia/Ho_Chi_Minh"
 
@@ -120,14 +121,14 @@ async def reset_and_seed() -> User:
         db.add(UserSettings(user_id=user.id, timezone=TIMEZONE))
         overdue = datetime.now(UTC) - timedelta(days=2)
         await task_service.create_task(db, user.id, "Renew passport", due_date=overdue)
-        lease = Document(user_id=user.id, filename="lease.txt")
+        lease = Document(
+            user_id=user.id, filename="lease.txt", status=DocStatusEnum.READY, chunk_count=1
+        )
         db.add(lease)
         await db.flush()
         chunk = "Pets: tenants may keep one cat or dog with a $300 refundable pet deposit."
         db.add(
-            DocumentChunk(
-                document_id=lease.id, content=chunk, embedding=(await get_embeddings([chunk]))[0]
-            )
+            DocumentChunk(document_id=lease.id, content=chunk, embedding=(await embed([chunk]))[0])
         )
         await db.commit()
         await db.refresh(user)

@@ -4,7 +4,20 @@ from datetime import UTC, datetime
 from typing import List, Optional
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Index, String, Text
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    Computed,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -64,6 +77,11 @@ class Task(Base):
     user: Mapped["User"] = relationship(back_populates="tasks")
 
 
+class DocSourceEnum(enum.Enum):
+    FILE = "FILE"
+    URL = "URL"
+
+
 class Document(Base):
     __tablename__ = "documents"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -72,18 +90,49 @@ class Document(Base):
     status: Mapped[DocStatusEnum] = mapped_column(
         Enum(DocStatusEnum), default=DocStatusEnum.UPLOADED
     )
+    source_type: Mapped[DocSourceEnum] = mapped_column(
+        Enum(DocSourceEnum), default=DocSourceEnum.FILE, server_default="FILE"
+    )
+    source_url: Mapped[Optional[str]] = mapped_column(Text)
+    mime_type: Mapped[Optional[str]] = mapped_column(String(100))
+    size_bytes: Mapped[Optional[int]] = mapped_column(BigInteger)
+    # Key of the original in the file store; None for legacy docs, which cannot be re-indexed.
+    storage_key: Mapped[Optional[str]] = mapped_column(String(512))
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    embedding_model: Mapped[Optional[str]] = mapped_column(String(100))
+    chunk_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    status_changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="documents")
-    chunks: Mapped[List["DocumentChunk"]] = relationship(back_populates="document")
+    chunks: Mapped[List["DocumentChunk"]] = relationship(
+        back_populates="document", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
+    __table_args__ = (
+        Index("ix_document_chunks_document_ordinal", "document_id", "ordinal"),
+        Index(
+            "ix_document_chunks_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+        Index("ix_document_chunks_content_tsv", "content_tsv", postgresql_using="gin"),
+    )
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id"))
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
+    ordinal: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     content: Mapped[str] = mapped_column(Text)
+    page: Mapped[Optional[int]] = mapped_column(Integer)
+    heading_path: Mapped[Optional[str]] = mapped_column(Text)
+    token_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     embedding: Mapped[Optional[Vector]] = mapped_column(Vector(1536))  # OpenAI size
+    content_tsv: Mapped[Optional[str]] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('simple', content)", persisted=True)
+    )
 
     document: Mapped["Document"] = relationship(back_populates="chunks")
 

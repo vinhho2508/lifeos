@@ -1,0 +1,22 @@
+[
+  {"query": "can I keep a dog in my apartment?", "doc": "apartment_lease.md", "heading": "Pets"},
+  {"query": "how much is the pet deposit", "doc": "apartment_lease.md", "heading": "Pets"},
+  {"query": "when is rent due each month", "doc": "apartment_lease.md", "heading": "Term and rent"},
+  {"query": "late payment fee", "doc": "apartment_lease.md", "heading": "Term and rent"},
+  {"query": "when do I get my security deposit back", "doc": "apartment_lease.md", "heading": "Deposit"},
+  {"query": "who fixes the air conditioner", "doc": "apartment_lease.md", "heading": "Maintenance and repairs"},
+  {"query": "emergency maintenance phone number", "doc": "apartment_lease.md", "heading": "Maintenance and repairs"},
+  {"query": "how much notice to leave the lease early", "doc": "apartment_lease.md", "heading": "Termination"},
+  {"query": "router serial number", "doc": "home_network.md", "heading": "Router"},
+  {"query": "22471X0098", "doc": "home_network.md", "heading": "Router"},
+  {"query": "what is the guest wifi called", "doc": "home_network.md", "heading": "Router"},
+  {"query": "when does the NAS back up the laptop", "doc": "home_network.md", "heading": "NAS backups"},
+  {"query": "BK-07", "doc": "home_network.md", "heading": "NAS backups"},
+  {"query": "internet provider contract number", "doc": "home_network.md", "heading": "ISP"},
+  {"query": "FTEL-883145", "doc": "home_network.md", "heading": "ISP"},
+  {"query": "how often do I feed my starter", "doc": "sourdough.html", "heading": "Feeding the starter"},
+  {"query": "what flour mix for the starter", "doc": "sourdough.html", "heading": "Feeding the starter"},
+  {"query": "how many stretch and folds", "doc": "sourdough.html", "heading": "Bulk fermentation"},
+  {"query": "oven temperature for bread", "doc": "sourdough.html", "heading": "Baking"},
+  {"query": "how long should the loaf cool", "doc": "sourdough.html", "heading": "Baking"}
+]

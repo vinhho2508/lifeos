@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     SLACK_SERVICE_TOKEN: str = ""
     S3_BUCKET_NAME: str = ""
     AWS_REGION: str = "us-east-1"
+    # RAG: originals go to S3 when S3_BUCKET_NAME is set, else to UPLOAD_DIR.
+    UPLOAD_DIR: str = "data/uploads"
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    RAG_MAX_UPLOAD_MB: int = 20
+    RAG_MAX_CHUNKS: int = 2000
+    RAG_DIGEST_CONCURRENCY: int = 2
+    RAG_MIN_SIMILARITY: float = 0.25
     SECRET_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 1 day

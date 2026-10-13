@@ -5,6 +5,7 @@ import StepCard from './StepCard'
 
 const TOOL_LABELS: Record<string, string> = {
   search_documents: 'Search documents',
+  list_documents: 'List documents',
   create_task: 'Create task',
   list_tasks: 'List tasks',
   update_task: 'Update task',

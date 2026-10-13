@@ -106,6 +106,13 @@ are skipped):
 python -m scripts.agent_smoke_eval            # or: ... openai anthropic
 ```
 
+To measure retrieval quality (recall@5 / MRR, vector-only vs hybrid, on `scripts/rag_eval_corpus/`;
+needs `OPENAI_API_KEY`, costs well under a cent):
+
+```bash
+python -m scripts.rag_eval
+```
+
 ### 3. Frontend
 
 ```bash
@@ -163,7 +170,8 @@ Load `dist/` as an unpacked extension in `chrome://extensions/`. See [chrome_ext
 | `SLACK_APP_TOKEN`                      | Slack Socket Mode token                                  | `slack_bot/.env`                    |
 | `SLACK_SERVICE_TOKEN`                  | Shared secret the Slack bot uses to call `/chat/stream`  | `backend/.env` and `slack_bot/.env` |
 | `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Keys for the other chat providers (pick one in Settings) | `backend/.env`                      |
-| `S3_BUCKET_NAME`                       | S3 bucket for file uploads                               | `backend/.env`                      |
+| `S3_BUCKET_NAME`                       | S3 bucket for generated images and document originals    | `backend/.env`                      |
+| `UPLOAD_DIR`                           | Local folder for document originals when S3 is unset     | `backend/.env`                      |
 | `AWS_REGION`                           | AWS region for S3 (default: `us-east-1`)                 | `backend/.env`                      |
 
 For the complete reference, see `specs/001-lifeos-assistant/quickstart.md`.
@@ -196,7 +204,11 @@ Settings page (it defaults to your browser's timezone).
 
 ### Document Q&A (RAG)
 
-Upload `.txt` files in `/knowledge-base`. The backend chunks and embeds documents with `text-embedding-3-small` and stores vectors in pgvector. Ask questions about your documents in chat — answers cite source documents.
+In `/knowledge-base`, upload `.txt`, `.md`, `.pdf` or `.html` files (up to 20 MB), or add a web page by URL. Uploads return immediately and are digested in the background. The list shows each document's status (queued, digesting, ready, failed with the reason), and you can re-index or delete documents there.
+
+- **Ingest**: the original goes to S3 (when `S3_BUCKET_NAME` is set) or `UPLOAD_DIR`. It is parsed into sections (Markdown/HTML headings, PDF pages) and split into ~400-token chunks that keep their page and heading. The chunks are embedded with `text-embedding-3-small` in pgvector. Unfinished digests are resumed at startup and every 5 minutes.
+- **Search**: hybrid retrieval. pgvector cosine (HNSW) and Postgres full-text results are fused with Reciprocal Rank Fusion, so exact codes and names are found too. Citations in chat show the document, page and section.
+- **No key, no index**: without `OPENAI_API_KEY`, documents fail with a clear error instead of being indexed with placeholder vectors.
 
 ### Automated Reminders & Digests
 

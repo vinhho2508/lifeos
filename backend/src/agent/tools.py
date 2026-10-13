@@ -19,10 +19,11 @@ from sqlalchemy import select
 
 from src.agent.context import AgentContext
 from src.core.database import async_session_factory
-from src.models.all_models import Document, DocumentChunk, StatusEnum, Task
+from src.models.all_models import DocStatusEnum, Document, StatusEnum, Task
 from src.services import task_service
 from src.services.image_generation import image_service
-from src.services.rag_service import get_embeddings
+from src.services.rag.embeddings import EmbeddingsNotConfigured
+from src.services.rag.search import hybrid_search
 
 Status = Literal["TODO", "WORKING", "DONE"]
 
@@ -58,45 +59,91 @@ def _parse_task_id(value: str) -> uuid.UUID:
         raise ToolError(f"task_id '{value}' is not a valid id; use an id from list_tasks")
 
 
+def _parse_document_ids(values: list[str] | None) -> list[uuid.UUID] | None:
+    if not values:
+        return None
+    try:
+        return [uuid.UUID(v) for v in values]
+    except ValueError:
+        raise ToolError("document_ids must be ids returned by list_documents")
+
+
+def _hit_label(hit: dict) -> str:
+    parts = [hit["source_name"]]
+    if hit["page"] is not None:
+        parts.append(f"p.{hit['page']}")
+    if hit["heading_path"]:
+        parts.append(hit["heading_path"])
+    return " · ".join(parts)
+
+
 @tool(response_format="content_and_artifact")
-async def search_documents(query: str, runtime: ToolRuntime[AgentContext], k: int = 5):
+async def search_documents(
+    query: str,
+    runtime: ToolRuntime[AgentContext],
+    k: int = 5,
+    document_ids: list[str] | None = None,
+):
     """Search the user's uploaded documents for passages relevant to the query.
 
     Use this whenever the user asks about the content of their documents, notes or
-    files. Cite the returned sources in your answer.
+    files. Pass document_ids (from list_documents) to search only specific documents.
+    Cite the returned sources in your answer.
     """
     k = max(1, min(k, 10))
-    embedding = (await get_embeddings([query]))[0]
-    distance = DocumentChunk.embedding.cosine_distance(embedding)
-    async with async_session_factory() as db:
-        rows = (
-            await db.execute(
-                select(DocumentChunk.content, Document.id, Document.filename, distance)
-                .join(Document, DocumentChunk.document_id == Document.id)
-                .where(Document.user_id == runtime.context.user_id)
-                .order_by(distance)
-                .limit(k)
-            )
-        ).all()
+    try:
+        results = await hybrid_search(
+            runtime.context.user_id, query, k, _parse_document_ids(document_ids)
+        )
+    except EmbeddingsNotConfigured:
+        raise ToolError("Document search is not configured (no embedding API key).")
 
-    hits = [
-        {
-            "document_id": str(doc_id),
-            "source_name": filename,
-            "chunk_text": content,
-            "score": round(1 - float(dist), 3),
-        }
-        for content, doc_id, filename, dist in rows
-    ]
+    hits = [r.as_citation() for r in results]
     summary = f"{len(hits)} passage{'s' if len(hits) != 1 else ''} found"
     if not hits:
-        return "No matching passages in the user's documents.", {"summary": summary, "output": []}
+        return (
+            "No passages in the user's documents match this query.",
+            {"summary": summary, "output": []},
+        )
 
     content = "\n\n".join(
-        f"[{i}] {h['source_name']} (score {h['score']}):\n{h['chunk_text']}"
+        f"[{i}] {_hit_label(h)} (score {h['score']}):\n{h['chunk_text']}"
         for i, h in enumerate(hits, 1)
     )
     return content, {"summary": summary, "output": hits, "citations": hits}
+
+
+@tool(response_format="content_and_artifact")
+async def list_documents(runtime: ToolRuntime[AgentContext]):
+    """List the documents in the user's knowledge base, newest first.
+
+    Use this to answer what documents the user has, or to find the id of a named
+    document before searching only within it.
+    """
+    async with async_session_factory() as db:
+        docs = (
+            await db.scalars(
+                select(Document)
+                .where(Document.user_id == runtime.context.user_id)
+                .order_by(Document.created_at.desc())
+                .limit(100)
+            )
+        ).all()
+        data = [
+            {
+                "id": str(d.id),
+                "name": d.filename,
+                "status": d.status.value,
+                "chunks": d.chunk_count,
+                **({"url": d.source_url} if d.source_url else {}),
+            }
+            for d in docs
+        ]
+    ready = sum(d["status"] == DocStatusEnum.READY.value for d in data)
+    summary = f"{len(data)} document{'s' if len(data) != 1 else ''} ({ready} searchable)"
+    if not data:
+        return "The user has no documents yet.", {"summary": summary, "output": []}
+    return json.dumps(data), {"summary": summary, "output": data}
 
 
 @tool(response_format="content_and_artifact")
@@ -214,7 +261,7 @@ async def generate_image(prompt: str):
     )
 
 
-TOOLS = [search_documents, create_task, list_tasks, update_task, generate_image]
+TOOLS = [search_documents, list_documents, create_task, list_tasks, update_task, generate_image]
 
 # Per-tool timeouts in seconds; image generation is much slower than DB tools.
 TOOL_TIMEOUTS = {"generate_image": 120.0}
