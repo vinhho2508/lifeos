@@ -42,7 +42,8 @@ async def extract_task_info(
     try:
         result: ExtractedTask = await llm.ainvoke(
             f"Extract a task from this message. Current local time is {now} ({timezone}).\n\n"
-            f"Message: {text}"
+            f"Message: {text}",
+            config={"run_name": "extract_task", "tags": ["slack"]},
         )
         due = parse_due_date(result.due_date, timezone)
     except Exception as exc:

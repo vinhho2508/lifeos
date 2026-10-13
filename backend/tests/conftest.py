@@ -12,8 +12,15 @@ from tests.db_url import is_test_database, test_database_url
 
 # Must happen before anything imports src.core.database (it builds the engine on import).
 os.environ["DATABASE_URL"] = test_database_url()
-for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "S3_BUCKET_NAME"):
+for key in (
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GEMINI_API_KEY",
+    "S3_BUCKET_NAME",
+    "LANGSMITH_API_KEY",
+):
     os.environ[key] = ""
+os.environ["LANGSMITH_TRACING"] = "false"
 os.environ["SECRET_KEY"] = "test-secret-key"  # noqa: S105
 os.environ["SLACK_SERVICE_TOKEN"] = "test-service-token"  # noqa: S105
 os.environ["ALLOWED_USER_EMAIL"] = "owner@example.com"

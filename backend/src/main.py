@@ -6,8 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.router import api_router
 from src.core.exceptions import LifeOSError, lifeos_exception_handler
 from src.core.logging import setup_logging
+from src.core.tracing import setup_tracing
 
 setup_logging()
+setup_tracing()
 
 
 @asynccontextmanager

@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     RAG_MAX_CHUNKS: int = 2000
     RAG_DIGEST_CONCURRENCY: int = 2
     RAG_MIN_SIMILARITY: float = 0.25
+    # LangSmith tracing (optional); exported to os.environ by src.core.tracing.
+    LANGSMITH_TRACING: bool = False
+    LANGSMITH_API_KEY: str = ""
+    LANGSMITH_PROJECT: str = "lifeos"
+    # Non-US region or self-hosted API URL, e.g. https://eu.api.smith.langchain.com
+    LANGSMITH_ENDPOINT: str = ""
+    # Only needed for API keys linked to several workspaces.
+    LANGSMITH_WORKSPACE_ID: str = ""
     SECRET_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 1 day

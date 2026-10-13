@@ -210,6 +210,15 @@ async def _execute(
             config={
                 "configurable": {"thread_id": str(run.run_id)},
                 "recursion_limit": 4 * MAX_STEPS + 10,
+                # LangSmith: conversation_id groups a conversation's turns into one Thread.
+                "run_name": "lifeos-agent",
+                "tags": [context.platform.value],
+                "metadata": {
+                    "conversation_id": str(run.conversation_id),
+                    "run_id": str(run.run_id),
+                    "user_id": str(context.user_id),
+                    "platform": context.platform.value,
+                },
             },
             stream_mode=["messages", "updates"],
         ):
