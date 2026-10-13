@@ -3,13 +3,7 @@
   "name": "LifeOS Assistant",
   "version": "0.1.0",
   "description": "Chat with AI and manage tasks from any webpage",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting",
-    "sidePanel",
-    "contextMenus"
-  ],
+  "permissions": ["storage", "activeTab", "scripting", "sidePanel", "contextMenus"],
   "host_permissions": [
     "http://localhost:5173/*",
     "http://localhost:8000/*",

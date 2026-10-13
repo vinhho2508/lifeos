@@ -4,16 +4,16 @@ All schema changes ship as Alembic migrations (see research.md, "Migrations").
 
 ## Changed: `user_settings`
 
-| Column | Type | Notes |
-|---|---|---|
+| Column     | Type                                    | Notes                                                                                                                                                                                                  |
+| ---------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `timezone` | `String(64)`, not null, default `'UTC'` | IANA zone name (e.g. `Asia/Ho_Chi_Minh`). Validated with `zoneinfo.ZoneInfo`. The frontend sets it from `Intl.DateTimeFormat().resolvedOptions().timeZone` when the stored value is still the default. |
 
 ## Changed: `tasks`
 
-| Column | Change | Notes |
-|---|---|---|
-| `due_date` | `DateTime` → `DateTime(timezone=True)` | Existing naive values are treated as UTC in the migration. |
-| `created_at` | `DateTime` → `DateTime(timezone=True)` | Same treatment. |
+| Column       | Change                                 | Notes                                                      |
+| ------------ | -------------------------------------- | ---------------------------------------------------------- |
+| `due_date`   | `DateTime` → `DateTime(timezone=True)` | Existing naive values are treated as UTC in the migration. |
+| `created_at` | `DateTime` → `DateTime(timezone=True)` | Same treatment.                                            |
 
 Code that writes these columns uses `datetime.now(UTC)` instead of `datetime.utcnow()`.
 
@@ -33,14 +33,14 @@ No column change; the allowed block shapes grow. The stored blocks are the sourc
 
 ### Replay mapping (stored blocks → LangChain messages)
 
-| Stored | Replayed as |
-|---|---|
-| USER message text | `HumanMessage` |
-| ASSISTANT `tool_call` blocks (consecutive) | one `AIMessage(content=<preceding text>, tool_calls=[...])` |
-| ASSISTANT `tool_result` | `ToolMessage(tool_call_id=id, content=output truncated to ~500 chars)` |
-| ASSISTANT trailing text | `AIMessage(content=text)` |
-| `tool_call` with no matching `tool_result` | dropped, with a warning logged |
-| `thinking`, `image`, `citation` | dropped |
+| Stored                                     | Replayed as                                                            |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| USER message text                          | `HumanMessage`                                                         |
+| ASSISTANT `tool_call` blocks (consecutive) | one `AIMessage(content=<preceding text>, tool_calls=[...])`            |
+| ASSISTANT `tool_result`                    | `ToolMessage(tool_call_id=id, content=output truncated to ~500 chars)` |
+| ASSISTANT trailing text                    | `AIMessage(content=text)`                                              |
+| `tool_call` with no matching `tool_result` | dropped, with a warning logged                                         |
+| `thinking`, `image`, `citation`            | dropped                                                                |
 
 Tool-call ids are kept as the provider issued them. When replaying under a different provider, ids are passed through unchanged (all three accept opaque string ids).
 

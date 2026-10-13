@@ -3,13 +3,17 @@
 ## Entities
 
 ### User
+
 Represents the authorized account.
+
 - `id`: UUID (Primary Key)
 - `email`: String (Unique, e.g., `vinhho2508@gmail.com`)
 - `created_at`: Timestamp
 
 ### Task
+
 Represents an item on the board and for reminders.
+
 - `id`: UUID (Primary Key)
 - `user_id`: UUID (Foreign Key -> User)
 - `title`: String
@@ -20,7 +24,9 @@ Represents an item on the board and for reminders.
 - `created_at`: Timestamp
 
 ### Document
+
 A source file uploaded for RAG.
+
 - `id`: UUID (Primary Key)
 - `user_id`: UUID (Foreign Key -> User)
 - `filename`: String
@@ -28,14 +34,18 @@ A source file uploaded for RAG.
 - `created_at`: Timestamp
 
 ### DocumentChunk
+
 Vectorized chunks of a document for retrieval.
+
 - `id`: UUID (Primary Key)
 - `document_id`: UUID (Foreign Key -> Document)
 - `content`: Text
 - `embedding`: Vector(1536) (pgvector, assumes OpenAI embeddings or similar)
 
 ### Message
+
 Chat history records.
+
 - `id`: UUID (Primary Key)
 - `user_id`: UUID (Foreign Key -> User)
 - `sender`: Enum (`USER`, `ASSISTANT`)
@@ -44,6 +54,7 @@ Chat history records.
 - `timestamp`: Timestamp
 
 ## Relationships
+
 - A User has many Tasks, Documents, and Messages.
 - A Document has many DocumentChunks.
 - A Task is associated with one User.

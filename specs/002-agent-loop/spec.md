@@ -16,7 +16,7 @@ Today every chat message runs the same pipeline in `backend/src/api/chat.py`:
 
 The model receives no conversation history, the backend has no notion of the user's timezone, and the chat endpoints do not verify the caller (they load the first user in the database).
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - The assistant decides what to do (Priority: P1) 🎯 MVP
 
@@ -27,7 +27,7 @@ As the user, I want the assistant to choose which actions to take based on my me
 **Acceptance Scenarios**:
 
 1. **Given** any message with no actionable intent, **When** I send it, **Then** no tool is called and no task is created.
-2. **Given** "remind me to pay rent Friday 9am", **When** I send it, **Then** `create_task` is called once with a due date of the coming Friday 09:00 *in my timezone*, and the reply confirms it.
+2. **Given** "remind me to pay rent Friday 9am", **When** I send it, **Then** `create_task` is called once with a due date of the coming Friday 09:00 _in my timezone_, and the reply confirms it.
 3. **Given** a question covered by an uploaded document, **When** I send it, **Then** `search_documents` is called and the reply includes citations to the matched chunks.
 4. **Given** "what's overdue? mark the first one done", **When** I send it, **Then** the agent calls `list_tasks` and then `update_task` with an id taken from the list result, in a single turn.
 
@@ -91,7 +91,7 @@ As the single authorized user, I want the chat endpoints to require authenticati
 - **No API key**: the app still runs using the scripted demo model.
 - **Provider switch mid-conversation**: history saved under one provider must replay correctly under another.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -118,7 +118,7 @@ As the single authorized user, I want the chat endpoints to require authenticati
 - **Tool Step**: a paired `tool_call` and `tool_result` content block sharing an `id`.
 - **Agent Context**: server-injected `{user_id, timezone, platform}` available to every tool.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 - **SC-001**: 0 tasks created for a set of 10 non-actionable messages ("hi", "thanks", ...).
 - **SC-002**: ≥ 90% correct tool choice on the v1 smoke eval set, per provider.

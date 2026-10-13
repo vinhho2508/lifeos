@@ -6,16 +6,16 @@ Personal life assistant with AI-powered chat, Kanban task board, document Q&A, a
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Backend | FastAPI (Python 3.12), SQLAlchemy 2.0 async, pgvector |
-| Frontend | React 18, TypeScript, Vite 5, Tailwind CSS 4, Radix UI |
-| Slack Bot | Slack Bolt (Python), Socket Mode |
-| Chrome Extension | React 18, TypeScript, Vite 5, Chrome Extension APIs |
-| Database | PostgreSQL 16 + pgvector |
-| AI | Tool-calling agent on LangChain v1 / LangGraph; OpenAI (default GPT-5.4 nano), Anthropic or Gemini for chat; GPT Image 1.5, text-embedding-3-small |
-| Auth | Google OAuth 2.0, JWT |
-| Infra | Docker Compose, APScheduler, Alembic |
+| Layer            | Technology                                                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend          | FastAPI (Python 3.12), SQLAlchemy 2.0 async, pgvector                                                                                              |
+| Frontend         | React 18, TypeScript, Vite 5, Tailwind CSS 4, Radix UI                                                                                             |
+| Slack Bot        | Slack Bolt (Python), Socket Mode                                                                                                                   |
+| Chrome Extension | React 18, TypeScript, Vite 5, Chrome Extension APIs                                                                                                |
+| Database         | PostgreSQL 16 + pgvector                                                                                                                           |
+| AI               | Tool-calling agent on LangChain v1 / LangGraph; OpenAI (default GPT-5.4 nano), Anthropic or Gemini for chat; GPT Image 1.5, text-embedding-3-small |
+| Auth             | Google OAuth 2.0, JWT                                                                                                                              |
+| Infra            | Docker Compose, APScheduler, Alembic                                                                                                               |
 
 ## Architecture
 
@@ -142,29 +142,29 @@ Load `dist/` as an unpacked extension in `chrome://extensions/`. See [chrome_ext
 
 ### Required
 
-| Variable | Purpose | File |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `backend/.env` |
-| `OPENAI_API_KEY` | OpenAI key for chat, embeddings, images (without it, chat runs a demo model) | `backend/.env` |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | `backend/.env` |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `backend/.env` |
-| `ALLOWED_USER_EMAIL` | Email of the single authorized user | `backend/.env` |
-| `SECRET_KEY` | JWT signing secret; chat rejects JWTs while it is empty | `backend/.env` |
-| `VITE_GOOGLE_CLIENT_ID` | Same Google OAuth client ID (exposed to browser) | `frontend/.env` |
-| `VITE_API_URL` | Backend API base URL (default: `http://localhost:8000`) | `frontend/.env` |
+| Variable                | Purpose                                                                      | File            |
+| ----------------------- | ---------------------------------------------------------------------------- | --------------- |
+| `DATABASE_URL`          | PostgreSQL connection string                                                 | `backend/.env`  |
+| `OPENAI_API_KEY`        | OpenAI key for chat, embeddings, images (without it, chat runs a demo model) | `backend/.env`  |
+| `GOOGLE_CLIENT_ID`      | Google OAuth client ID                                                       | `backend/.env`  |
+| `GOOGLE_CLIENT_SECRET`  | Google OAuth client secret                                                   | `backend/.env`  |
+| `ALLOWED_USER_EMAIL`    | Email of the single authorized user                                          | `backend/.env`  |
+| `SECRET_KEY`            | JWT signing secret; chat rejects JWTs while it is empty                      | `backend/.env`  |
+| `VITE_GOOGLE_CLIENT_ID` | Same Google OAuth client ID (exposed to browser)                             | `frontend/.env` |
+| `VITE_API_URL`          | Backend API base URL (default: `http://localhost:8000`)                      | `frontend/.env` |
 
 ### Optional
 
-| Variable | Purpose | File |
-|---|---|---|
-| `SLACK_BOT_TOKEN` | Slack bot token for DM reminders | `backend/.env` |
-| `SLACK_DM_USER_ID` | Slack user ID to receive DMs | `backend/.env` |
-| `SLACK_SIGNING_SECRET` | Slack signing secret | `backend/.env` |
-| `SLACK_APP_TOKEN` | Slack Socket Mode token | `slack_bot/.env` |
-| `SLACK_SERVICE_TOKEN` | Shared secret the Slack bot uses to call `/chat/stream` | `backend/.env` and `slack_bot/.env` |
-| `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Keys for the other chat providers (pick one in Settings) | `backend/.env` |
-| `S3_BUCKET_NAME` | S3 bucket for file uploads | `backend/.env` |
-| `AWS_REGION` | AWS region for S3 (default: `us-east-1`) | `backend/.env` |
+| Variable                               | Purpose                                                  | File                                |
+| -------------------------------------- | -------------------------------------------------------- | ----------------------------------- |
+| `SLACK_BOT_TOKEN`                      | Slack bot token for DM reminders                         | `backend/.env`                      |
+| `SLACK_DM_USER_ID`                     | Slack user ID to receive DMs                             | `backend/.env`                      |
+| `SLACK_SIGNING_SECRET`                 | Slack signing secret                                     | `backend/.env`                      |
+| `SLACK_APP_TOKEN`                      | Slack Socket Mode token                                  | `slack_bot/.env`                    |
+| `SLACK_SERVICE_TOKEN`                  | Shared secret the Slack bot uses to call `/chat/stream`  | `backend/.env` and `slack_bot/.env` |
+| `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Keys for the other chat providers (pick one in Settings) | `backend/.env`                      |
+| `S3_BUCKET_NAME`                       | S3 bucket for file uploads                               | `backend/.env`                      |
+| `AWS_REGION`                           | AWS region for S3 (default: `us-east-1`)                 | `backend/.env`                      |
 
 For the complete reference, see `specs/001-lifeos-assistant/quickstart.md`.
 
@@ -184,8 +184,8 @@ Visit `/tasks` to manage tasks on a drag-and-drop board: **Todo → Working → 
 
 ### Tasks from Chat
 
-Ask the assistant to add, list or change tasks — e.g. *"Remind me to call Mom at 6pm"*, *"what's
-overdue?"*, *"mark the first one done"*. Relative dates resolve in the timezone set on the
+Ask the assistant to add, list or change tasks — e.g. _"Remind me to call Mom at 6pm"_, _"what's
+overdue?"_, _"mark the first one done"_. Relative dates resolve in the timezone set on the
 Settings page (it defaults to your browser's timezone).
 
 ### Slack Integration
@@ -202,11 +202,11 @@ Upload `.txt` files in `/knowledge-base`. The backend chunks and embeds document
 
 APScheduler runs in-process within the backend:
 
-| Schedule | Job |
-|---|---|
-| Hourly (`0 * * * *`) | Slack DM for each overdue, un-reminded task |
-| Daily 9am (`0 9 * * *`) | Morning digest of all TODO and WORKING tasks |
-| Every 6 hours (`0 */6 * * *`) | Top 10 cryptocurrency price update |
+| Schedule                      | Job                                          |
+| ----------------------------- | -------------------------------------------- |
+| Hourly (`0 * * * *`)          | Slack DM for each overdue, un-reminded task  |
+| Daily 9am (`0 9 * * *`)       | Morning digest of all TODO and WORKING tasks |
+| Every 6 hours (`0 */6 * * *`) | Top 10 cryptocurrency price update           |
 
 All require Slack to be configured.
 
