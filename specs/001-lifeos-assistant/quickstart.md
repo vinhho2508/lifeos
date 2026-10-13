@@ -1,6 +1,7 @@
 # Quickstart: LifeOS Assistant
 
 ## Prerequisites
+
 - **Python**: 3.12+
 - **Node.js**: 20+
 - **Docker**: For running PostgreSQL + pgvector
@@ -8,7 +9,9 @@
 - **Slack Workspace**: For app installation and bot token
 
 ## Environment Variables
+
 Create a `.env` file in the root with:
+
 ```env
 # Backend
 DATABASE_URL=postgresql://user:password@localhost:5432/lifeos
@@ -27,11 +30,13 @@ VITE_GOOGLE_CLIENT_ID=...
 ## Running Locally
 
 ### 1. Database
+
 ```bash
 docker run -d --name lifeos-db -p 5432:5432 -e POSTGRES_PASSWORD=password pgvector/pgvector:pg16
 ```
 
 ### 2. Backend (FastAPI)
+
 ```bash
 cd backend
 python -m venv venv
@@ -41,6 +46,7 @@ python src/main.py
 ```
 
 ### 3. Frontend (React)
+
 ```bash
 cd frontend
 npm install
@@ -48,6 +54,7 @@ npm run dev
 ```
 
 ### 4. Slack Bot (Optional if testing Slack)
+
 ```bash
 cd slack_bot
 python -m venv venv
@@ -57,6 +64,7 @@ python src/main.py
 ```
 
 ## Development Workflow
+
 1. Log in via Google UI (must use `vinhho2508@gmail.com`).
 2. Add a task via chat: "Remind me to call Mom at 6pm".
 3. Check the Kanban board to see the new task in "To-do".

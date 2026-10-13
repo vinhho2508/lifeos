@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "../src/theme.css";
+@import 'tailwindcss';
+@import '../src/theme.css';
 
 @layer base {
   body {

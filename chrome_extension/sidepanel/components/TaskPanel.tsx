@@ -104,9 +104,7 @@ const TaskPanel: React.FC = () => {
       </div>
       <ScrollArea className="flex-1">
         <div className="space-y-2">
-          {loading && (
-            <p className="text-sm text-muted-foreground">Loading tasks...</p>
-          )}
+          {loading && <p className="text-sm text-muted-foreground">Loading tasks...</p>}
           {!loading && tasks.length === 0 && (
             <p className="text-sm text-muted-foreground">No tasks yet.</p>
           )}
@@ -114,9 +112,7 @@ const TaskPanel: React.FC = () => {
             <Card key={task.id} className="cursor-pointer hover:bg-accent/50">
               <CardHeader className="p-3 pb-0">
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-sm font-medium">
-                    {task.title}
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">{task.title}</CardTitle>
                   <button
                     onClick={() => handleDelete(task.id)}
                     className="text-muted-foreground hover:text-destructive"

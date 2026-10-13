@@ -101,10 +101,10 @@ chrome_extension/popup/Settings.tsx         # CHANGED: "no tools" label on direc
 
 ## Risks
 
-| Risk | Mitigation |
-|---|---|
-| Unpaired tool calls in replayed history make Anthropic or Gemini reject requests | `history.py` drops unpaired calls; dedicated tests run under each provider's message validation |
-| psycopg 3 pool alongside asyncpg | Small pool (max 2), opened and closed in the FastAPI lifespan |
-| Gemini or Anthropic stream tool-call chunks differently from OpenAI | Emit `tool_call` only from completed `updates`, never from partial chunks |
-| Background runs outliving a redeploy | The run is saved step by step; an interrupted run ends with `stop_reason: error` on the next startup sweep |
-| `create_all` removal breaks fresh setups | The baseline migration matches the current models exactly; quickstart updated to `alembic upgrade head` |
+| Risk                                                                             | Mitigation                                                                                                 |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Unpaired tool calls in replayed history make Anthropic or Gemini reject requests | `history.py` drops unpaired calls; dedicated tests run under each provider's message validation            |
+| psycopg 3 pool alongside asyncpg                                                 | Small pool (max 2), opened and closed in the FastAPI lifespan                                              |
+| Gemini or Anthropic stream tool-call chunks differently from OpenAI              | Emit `tool_call` only from completed `updates`, never from partial chunks                                  |
+| Background runs outliving a redeploy                                             | The run is saved step by step; an interrupted run ends with `stop_reason: error` on the next startup sweep |
+| `create_all` removal breaks fresh setups                                         | The baseline migration matches the current models exactly; quickstart updated to `alembic upgrade head`    |

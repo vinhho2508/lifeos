@@ -14,6 +14,7 @@ Personal assistant (Chat, Kanban, Reminders, RAG) restricted to a single Google 
 ## Critical Commands
 
 ### Backend
+
 ```bash
 cd backend
 source venv/bin/activate
@@ -25,6 +26,7 @@ ruff format .                   # format
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
@@ -34,6 +36,7 @@ npm run lint     # eslint . --ext ts,tsx
 ```
 
 ### Slack Bot
+
 ```bash
 cd slack_bot
 source venv/bin/activate
@@ -41,6 +44,7 @@ python src/main.py
 ```
 
 ### Database
+
 ```bash
 docker-compose up -d   # pgvector/pgvector:pg16 on :5432
 ```
@@ -92,6 +96,7 @@ Backend loads `.env` from cwd via `pydantic-settings` (`env_file=".env"`). Run b
 ## Speckit / Gemini Workflow
 
 This repo was bootstrapped with Speckit. If extending the spec-driven workflow, see:
+
 - `GEMINI.md` — short pointer to the current plan
 - `specs/001-lifeos-assistant/plan.md` — implementation plan and constitution checks
 - `.specify/` and `.gemini/` — workflow templates and commands
@@ -99,6 +104,7 @@ This repo was bootstrapped with Speckit. If extending the spec-driven workflow, 
 When adding a new major feature, follow the existing `specs/001-lifeos-assistant/` structure or create a new `specs/XXX-feature-name/` directory.
 
 <!-- graft:start -->
+
 ## Graft — repo context graph
 
 This repo is indexed in `graft/`: small linked markdown nodes that explain each

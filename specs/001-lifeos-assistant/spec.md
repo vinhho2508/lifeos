@@ -5,7 +5,7 @@
 **Status**: Draft  
 **Input**: User description: "I want to build an app that help me with my daily life tasks. The app have UI and can also integrate with slack. Main functionality of this app is to chat with it. Login via Google with only my google account is allow: vinhho2508@gmail.com. I can ask it (through UI or slack) to add reminder then it will send reminder to remind me of tasks; the UI also show my tasks in jira style: to-do, working, done. The app also support RAG, I can told it digest document so I can ask about that again."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Secure Personal Access (Priority: P1)
 
@@ -87,7 +87,7 @@ As a researcher or busy professional, I want to provide documents to the assista
 - **Unsupported Document Formats**: Handling files that cannot be digested for RAG.
 - **Slack/UI Sync Latency**: Ensuring tasks added in one interface appear immediately in the other.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -99,14 +99,14 @@ As a researcher or busy professional, I want to provide documents to the assista
 - **FR-006**: System MUST allow users to upload or provide documents for digestion (RAG). [NEEDS CLARIFICATION: Should it support direct file upload or just pasting text for digestion?]
 - **FR-007**: System MUST allow querying digested documents via the chat interface.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **User**: The single authorized individual (vinhho2508@gmail.com).
 - **Task**: Represents an item of work (Title, Description, Status, Reminder Time).
 - **Document**: A source of knowledge digested for RAG (Content, Metadata, Embeddings).
 - **Conversation**: History of interactions between the user and the assistant.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

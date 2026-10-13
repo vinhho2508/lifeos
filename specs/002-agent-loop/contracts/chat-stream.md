@@ -3,6 +3,7 @@
 ## Auth
 
 One of:
+
 - `Authorization: Bearer <JWT>` (web app; Chrome extension in backend mode)
 - `X-Service-Token: <SLACK_SERVICE_TOKEN>` (Slack bot; maps to `ALLOWED_USER_EMAIL`)
 
@@ -18,16 +19,16 @@ Missing or invalid → `401`. `GET /chat/history` uses the same auth.
 
 `200`, `Content-Type: application/x-ndjson`. One JSON object per line. Every line has `type`; any other fields depend on the type. Clients MUST ignore unknown types and unknown fields.
 
-| `type` | Fields | Notes |
-|---|---|---|
-| `text` | `delta` | Appended to the current text block. |
-| `thinking` | `delta` | Provider reasoning, when available. |
-| `tool_call` | `id`, `name`, `input` | Sent once the call's arguments are complete (not streamed partially). |
-| `tool_result` | `id`, `name`, `status` (`ok`/`error`), `summary`, `output` | `summary` is one human-readable line; `output` may be large. Slack shows `summary` only. |
-| `citation` | `document_id`, `chunk_text`, `source_name` | Sent after a `search_documents` result, one per chunk the model may cite. |
-| `image` | `url`, `alt` | Sent after `generate_image` succeeds. |
-| `error` | `message`, `retryable` | Sanitized; no stack traces or keys. |
-| `done` | `run_id`, `stop_reason` (`end_turn`/`max_steps`/`error`), `steps`, `usage` | Always the last line. `usage` = `{input_tokens, output_tokens}` when the provider reports it. |
+| `type`        | Fields                                                                     | Notes                                                                                         |
+| ------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `text`        | `delta`                                                                    | Appended to the current text block.                                                           |
+| `thinking`    | `delta`                                                                    | Provider reasoning, when available.                                                           |
+| `tool_call`   | `id`, `name`, `input`                                                      | Sent once the call's arguments are complete (not streamed partially).                         |
+| `tool_result` | `id`, `name`, `status` (`ok`/`error`), `summary`, `output`                 | `summary` is one human-readable line; `output` may be large. Slack shows `summary` only.      |
+| `citation`    | `document_id`, `chunk_text`, `source_name`                                 | Sent after a `search_documents` result, one per chunk the model may cite.                     |
+| `image`       | `url`, `alt`                                                               | Sent after `generate_image` succeeds.                                                         |
+| `error`       | `message`, `retryable`                                                     | Sanitized; no stack traces or keys.                                                           |
+| `done`        | `run_id`, `stop_reason` (`end_turn`/`max_steps`/`error`), `steps`, `usage` | Always the last line. `usage` = `{input_tokens, output_tokens}` when the provider reports it. |
 
 ### Example
 

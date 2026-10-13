@@ -59,15 +59,15 @@ npm run lint     # ESLint
 
 ## Architecture
 
-| File | Purpose |
-|------|---------|
-| `background.ts` | Service worker: opens side panel, context menus |
-| `content-script.ts` | Detects text selection, injects floating icon |
+| File                            | Purpose                                                    |
+| ------------------------------- | ---------------------------------------------------------- |
+| `background.ts`                 | Service worker: opens side panel, context menus            |
+| `content-script.ts`             | Detects text selection, injects floating icon              |
 | `floating-icon/FloatingIcon.ts` | Vanilla Web Component (Shadow DOM) for the floating button |
-| `sidepanel/` | React app: chat + tasks |
-| `popup/` | React app: settings |
-| `lib/api.ts` | Unified API client (backend or OpenAI) |
-| `lib/storage.ts` | `chrome.storage.local` wrappers |
+| `sidepanel/`                    | React app: chat + tasks                                    |
+| `popup/`                        | React app: settings                                        |
+| `lib/api.ts`                    | Unified API client (backend or OpenAI)                     |
+| `lib/storage.ts`                | `chrome.storage.local` wrappers                            |
 
 ## Permissions
 

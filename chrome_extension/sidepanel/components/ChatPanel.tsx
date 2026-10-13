@@ -5,16 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Send, Plus, Loader2 } from 'lucide-react'
 import type { Message } from '@/types'
-import {
-  sendChatMessage,
-  getChatHistory,
-  createTask,
-} from '@/lib/api'
-import {
-  addLocalMessage,
-  setSelectedText,
-  getSelectedText,
-} from '@/lib/storage'
+import { sendChatMessage, getChatHistory, createTask } from '@/lib/api'
+import { addLocalMessage, setSelectedText, getSelectedText } from '@/lib/storage'
 
 const ChatPanel: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
@@ -180,9 +172,7 @@ const ChatPanel: React.FC = () => {
           )}
           {error && (
             <Card className="border-destructive">
-              <CardContent className="p-3 text-sm text-destructive">
-                {error}
-              </CardContent>
+              <CardContent className="p-3 text-sm text-destructive">{error}</CardContent>
             </Card>
           )}
         </div>

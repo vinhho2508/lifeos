@@ -4,6 +4,7 @@
 **Input**: Feature specification from `specs/001-lifeos-assistant/spec.md`
 
 ## Summary
+
 Build a personal assistant application (LifeOS) with a web UI and Slack integration. The system allows managing tasks via chat and a Kanban board, sets reminders, and supports RAG for document-based knowledge retrieval. It is strictly limited to one authorized user (vinhho2508@gmail.com) via Google OAuth.
 
 ## Technical Context
@@ -20,7 +21,7 @@ Build a personal assistant application (LifeOS) with a web UI and Slack integrat
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 - [x] I. Code Quality & Maintainability: Plan includes modular FastAPI services and React components.
 - [x] II. Testing Standards & Reliability: Phase 2 will include mandatory test tasks for all user stories.
@@ -72,5 +73,5 @@ slack_bot/
 ## Complexity Tracking
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| None | N/A | N/A |
+| --------- | ---------- | ------------------------------------ |
+| None      | N/A        | N/A                                  |
