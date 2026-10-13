@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { ArrowUp, Sparkles } from 'lucide-react'
+import { Button, TextArea } from '@heroui/react'
 import { Message, ContentBlock, ContentDelta } from '@/types/chat'
 import { syncBrowserTimezone } from '@/services/settingsApi'
 import { handleUnauthorized } from '@/services/api'
 import MessageBubble from './MessageBubble'
 import ThinkingAnimation from './ThinkingAnimation'
+
+const SUGGESTIONS = [
+  'What is on my task board?',
+  'Add a task: review the weekly plan',
+  'Summarize my uploaded documents',
+]
 
 const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
@@ -14,6 +19,7 @@ const Chat: React.FC = () => {
   const [isStreaming, setIsStreaming] = useState(false)
   const [hasReceivedFirstToken, setHasReceivedFirstToken] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -21,6 +27,14 @@ const Chat: React.FC = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [messages])
+
+  // Grow the composer with its content (capped; scrolls beyond that)
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`
+  }, [input])
 
   // Load chat history on mount
   useEffect(() => {
@@ -160,38 +174,77 @@ const Chat: React.FC = () => {
   // streaming is active and no first token yet
   const showGlobalThinking = isStreaming && !hasReceivedFirstToken
 
+  const canSend = input.trim().length > 0 && !isStreaming
+
   return (
-    <div className="flex h-full flex-col">
-      <ScrollArea className="flex-1 pr-4">
-        <div ref={scrollRef} className="space-y-3">
-          {messages.map((m, i) => (
-            <MessageBubble
-              key={i}
-              message={m}
-              isStreaming={isStreaming}
-              isLast={i === messages.length - 1}
-            />
-          ))}
-        </div>
-      </ScrollArea>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {messages.length === 0 && !isStreaming ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground">
+              <Sparkles className="size-5" />
+            </div>
+            <div>
+              <p className="font-medium">How can I help today?</p>
+              <p className="mt-1 text-sm text-muted">Try one of these to get started.</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              {SUGGESTIONS.map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => {
+                    setInput(s)
+                    inputRef.current?.focus()
+                  }}
+                >
+                  {s}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5 pb-4">
+            {messages.map((m, i) => (
+              <MessageBubble
+                key={i}
+                message={m}
+                isStreaming={isStreaming}
+                isLast={i === messages.length - 1}
+              />
+            ))}
+            {/* Global thinking indicator: streaming started, no token yet */}
+            {showGlobalThinking && <ThinkingAnimation />}
+          </div>
+        )}
+      </div>
 
-      {/* Global thinking indicator */}
-      {showGlobalThinking && (
-        <div className="flex items-center justify-center py-2">
-          <ThinkingAnimation />
-        </div>
-      )}
-
-      <div className="mt-4 flex gap-2">
-        <Input
+      <div className="mt-2 flex items-end gap-2 rounded-2xl border border-border bg-surface p-2 shadow-surface focus-within:border-accent">
+        <TextArea
+          ref={inputRef}
+          aria-label="Message"
+          rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Type a message..."
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault()
+              handleSend()
+            }
+          }}
+          placeholder="Message LifeOS…"
           disabled={isStreaming}
+          className="max-h-[200px] min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-1.5 shadow-none outline-none focus-visible:ring-0"
         />
-        <Button onClick={handleSend} disabled={isStreaming}>
-          Send
+        <Button
+          isIconOnly
+          aria-label="Send message"
+          isDisabled={!canSend}
+          onPress={handleSend}
+          className="shrink-0 rounded-xl"
+        >
+          <ArrowUp className="size-4" />
         </Button>
       </div>
     </div>

@@ -11,6 +11,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // the shared design tokens live in ../packages/ui-theme
+    fs: { allow: ['..'] },
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { ImageIcon } from 'lucide-react'
+import { Skeleton } from '@heroui/react'
 
 interface ImageBlockProps {
   url: string
@@ -12,7 +13,7 @@ const ImageBlock: React.FC<ImageBlockProps> = ({ url, alt }) => {
 
   if (error) {
     return (
-      <div className="my-2 rounded-lg border border-destructive/30 bg-destructive/10 p-4 flex items-center gap-2 text-sm text-destructive">
+      <div className="my-2 flex items-center gap-2 rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger-soft-foreground">
         <ImageIcon className="w-4 h-4" />
         <span>Failed to load image</span>
       </div>
@@ -22,9 +23,9 @@ const ImageBlock: React.FC<ImageBlockProps> = ({ url, alt }) => {
   return (
     <div className="my-2">
       {!loaded && (
-        <div className="rounded-lg bg-muted animate-pulse h-48 w-full flex items-center justify-center">
-          <ImageIcon className="w-8 h-8 text-muted-foreground/50" />
-        </div>
+        <Skeleton className="flex h-48 w-full items-center justify-center rounded-lg">
+          <ImageIcon className="size-8 text-muted/50" />
+        </Skeleton>
       )}
       <img
         src={url}
@@ -33,9 +34,7 @@ const ImageBlock: React.FC<ImageBlockProps> = ({ url, alt }) => {
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
       />
-      {alt && loaded && (
-        <p className="text-xs text-muted-foreground mt-1">{alt}</p>
-      )}
+      {alt && loaded && <p className="mt-1 text-xs text-muted">{alt}</p>}
     </div>
   )
 }

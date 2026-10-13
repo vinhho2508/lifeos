@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import api from '../../services/api'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { Button, Card, Chip } from '@heroui/react'
 import {
   DndContext,
   DragOverlay,
@@ -30,28 +29,31 @@ interface Task {
   status: 'TODO' | 'WORKING' | 'DONE'
 }
 
-const statusColors: Record<Task['status'], 'default' | 'secondary' | 'destructive'> = {
-  TODO: 'default',
-  WORKING: 'secondary',
-  DONE: 'destructive',
+const statusMeta: Record<
+  Task['status'],
+  { label: string; color: 'default' | 'warning' | 'success'; dot: string }
+> = {
+  TODO: { label: 'To do', color: 'default', dot: 'bg-muted' },
+  WORKING: { label: 'In progress', color: 'warning', dot: 'bg-warning' },
+  DONE: { label: 'Done', color: 'success', dot: 'bg-success' },
 }
 
 const columns: Task['status'][] = ['TODO', 'WORKING', 'DONE']
 
-function TaskCard({ task, showButtons, onMoveLeft, onMoveRight }: {
+function TaskCard({
+  task,
+  showButtons,
+  onMoveLeft,
+  onMoveRight,
+}: {
   task: Task
   showButtons: { left: boolean; right: boolean }
   onMoveLeft?: () => void
   onMoveRight?: () => void
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: task.id,
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -60,27 +62,51 @@ function TaskCard({ task, showButtons, onMoveLeft, onMoveRight }: {
   }
 
   return (
-    <Card ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <CardContent className="p-3 cursor-grab active:cursor-grabbing">
-        <p className="text-sm mb-2">{task.title}</p>
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="cursor-grab gap-2 p-3 active:cursor-grabbing"
+    >
+      <p className="text-sm leading-snug">{task.title}</p>
+      {(showButtons.left || showButtons.right) && (
         <div className="flex justify-between" onClick={(e) => e.stopPropagation()}>
-          {showButtons.left && onMoveLeft && (
-            <Button variant="ghost" size="sm" onClick={onMoveLeft}>
-              ←
+          {showButtons.left && onMoveLeft ? (
+            <Button
+              isIconOnly
+              size="sm"
+              variant="ghost"
+              aria-label="Move left"
+              onPress={onMoveLeft}
+            >
+              <ArrowLeft className="size-3.5" />
             </Button>
+          ) : (
+            <span />
           )}
           {showButtons.right && onMoveRight && (
-            <Button variant="ghost" size="sm" onClick={onMoveRight}>
-              →
+            <Button
+              isIconOnly
+              size="sm"
+              variant="ghost"
+              aria-label="Move right"
+              onPress={onMoveRight}
+            >
+              <ArrowRight className="size-3.5" />
             </Button>
           )}
         </div>
-      </CardContent>
+      )}
     </Card>
   )
 }
 
-function SortableColumn({ status, tasks, onMoveTask }: {
+function SortableColumn({
+  status,
+  tasks,
+  onMoveTask,
+}: {
   status: Task['status']
   tasks: Task[]
   onMoveTask: (id: string, newStatus: Task['status']) => void
@@ -89,22 +115,31 @@ function SortableColumn({ status, tasks, onMoveTask }: {
   const { setNodeRef } = useDroppable({ id: status })
 
   return (
-    <div className="w-64 shrink-0">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-semibold text-sm">{status}</h3>
-        <Badge variant={statusColors[status]}>
+    <div className="w-72 shrink-0">
+      <div className="mb-2 flex items-center gap-2 px-1">
+        <span className={`size-2 rounded-full ${statusMeta[status].dot}`} />
+        <h3 className="text-sm font-medium">{statusMeta[status].label}</h3>
+        <Chip size="sm" color={statusMeta[status].color} variant="soft">
           {tasks.length}
-        </Badge>
+        </Chip>
       </div>
-      <SortableContext id={status} items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className="space-y-2 min-h-[200px] rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-2 transition-colors">
+      <SortableContext
+        id={status}
+        items={tasks.map((t) => t.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div ref={setNodeRef} className="min-h-48 space-y-2 rounded-xl bg-surface-secondary p-2">
           {tasks.map((t) => (
             <TaskCard
               key={t.id}
               task={t}
               showButtons={{ left: colIndex > 0, right: colIndex < columns.length - 1 }}
               onMoveLeft={colIndex > 0 ? () => onMoveTask(t.id, columns[colIndex - 1]) : undefined}
-              onMoveRight={colIndex < columns.length - 1 ? () => onMoveTask(t.id, columns[colIndex + 1]) : undefined}
+              onMoveRight={
+                colIndex < columns.length - 1
+                  ? () => onMoveTask(t.id, columns[colIndex + 1])
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -120,7 +155,7 @@ const Board: React.FC = () => {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
   const fetchTasks = async () => {
@@ -173,9 +208,7 @@ const Board: React.FC = () => {
     }
 
     if (newStatus && newStatus !== activeTask.status) {
-      setTasks((old) =>
-        old.map((t) => (t.id === activeTask.id ? { ...t, status: newStatus! } : t))
-      )
+      setTasks((old) => old.map((t) => (t.id === activeTask.id ? { ...t, status: newStatus! } : t)))
     }
   }
 
@@ -228,10 +261,8 @@ const Board: React.FC = () => {
       </div>
       <DragOverlay>
         {activeTask ? (
-          <Card className="w-60 rotate-3 shadow-lg">
-            <CardContent className="p-3">
-              <p className="text-sm">{activeTask.title}</p>
-            </CardContent>
+          <Card className="w-64 rotate-2 p-3 shadow-overlay">
+            <p className="text-sm leading-snug">{activeTask.title}</p>
           </Card>
         ) : null}
       </DragOverlay>

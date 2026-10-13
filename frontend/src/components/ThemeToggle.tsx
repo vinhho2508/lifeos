@@ -1,20 +1,19 @@
 import { Moon, Sun } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button, useTheme } from '@heroui/react'
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  )
-
-  useEffect(() => {
-    localStorage.setItem('theme', dark ? 'dark' : 'light')
-    document.documentElement.classList.toggle('dark', dark)
-  }, [dark])
+  const { resolvedTheme, setTheme } = useTheme('system')
+  const isDark = resolvedTheme === 'dark'
 
   return (
-    <Button variant="ghost" size="icon" onClick={() => setDark(!dark)}>
-      {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+    <Button
+      isIconOnly
+      size="sm"
+      variant="ghost"
+      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      onPress={() => setTheme(isDark ? 'light' : 'dark')}
+    >
+      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </Button>
   )
 }

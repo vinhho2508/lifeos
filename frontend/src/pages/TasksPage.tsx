@@ -1,19 +1,16 @@
 import React from 'react'
 import Board from '../components/Board/Board'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Page from '@/components/Layout/Page'
 
 const TasksPage: React.FC = () => {
   return (
-    <div className="mx-auto max-w-6xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Task Board</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Board />
-        </CardContent>
-      </Card>
-    </div>
+    <Page
+      title="Tasks"
+      description="Drag cards between columns to update their status."
+      width="max-w-6xl"
+    >
+      <Board />
+    </Page>
   )
 }
 

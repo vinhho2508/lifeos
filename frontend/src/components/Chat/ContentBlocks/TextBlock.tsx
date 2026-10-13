@@ -15,13 +15,21 @@ const TextBlock: React.FC<TextBlockProps> = ({ text }) => {
       components={{
         code({ className, children }) {
           const match = /language-(\w+)/.exec(className || '')
+          const isBlock = !!match || String(children).includes('\n')
+          if (!isBlock) {
+            return (
+              <code className="rounded bg-surface-tertiary px-1 py-0.5 font-mono text-[0.85em]">
+                {children}
+              </code>
+            )
+          }
           const language = match ? match[1] : 'text'
           return (
             <SyntaxHighlighter
               style={oneDark}
               language={language}
               PreTag="div"
-              className="rounded-md my-2 text-sm"
+              className="my-2 rounded-lg text-sm"
             >
               {String(children).replace(/\n$/, '')}
             </SyntaxHighlighter>
@@ -40,24 +48,29 @@ const TextBlock: React.FC<TextBlockProps> = ({ text }) => {
           return <li className="mb-1">{children}</li>
         },
         h1({ children }) {
-          return <h1 className="text-xl font-bold mb-2 mt-3">{children}</h1>
+          return <h1 className="mb-2 mt-4 text-xl font-semibold">{children}</h1>
         },
         h2({ children }) {
-          return <h2 className="text-lg font-bold mb-2 mt-3">{children}</h2>
+          return <h2 className="mb-2 mt-4 text-lg font-semibold">{children}</h2>
         },
         h3({ children }) {
-          return <h3 className="text-base font-bold mb-1 mt-2">{children}</h3>
+          return <h3 className="mb-1 mt-3 text-base font-semibold">{children}</h3>
         },
         a({ href, children }) {
           return (
-            <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noreferrer">
+            <a
+              href={href}
+              className="text-link underline underline-offset-2 hover:opacity-80"
+              target="_blank"
+              rel="noreferrer"
+            >
               {children}
             </a>
           )
         },
         blockquote({ children }) {
           return (
-            <blockquote className="border-l-4 border-muted-foreground/30 pl-4 italic my-2 text-muted-foreground">
+            <blockquote className="my-2 border-l-2 border-border pl-4 italic text-muted">
               {children}
             </blockquote>
           )
@@ -72,10 +85,12 @@ const TextBlock: React.FC<TextBlockProps> = ({ text }) => {
           )
         },
         thead({ children }) {
-          return <thead className="bg-muted">{children}</thead>
+          return <thead className="bg-surface-secondary">{children}</thead>
         },
         th({ children }) {
-          return <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>
+          return (
+            <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>
+          )
         },
         td({ children }) {
           return <td className="border border-border px-3 py-2">{children}</td>

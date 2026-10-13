@@ -1,40 +1,37 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
-import { MessageSquare, Layout, FileText, Settings } from 'lucide-react'
 import { ThemeToggle } from '../ThemeToggle'
-
-const navItems = [
-  { path: '/chat', label: 'Chat', icon: MessageSquare },
-  { path: '/tasks', label: 'Tasks', icon: Layout },
-  { path: '/knowledge-base', label: 'Knowledge Base', icon: FileText },
-  { path: '/settings', label: 'Settings', icon: Settings },
-]
+import { navItems } from './navItems'
 
 const Sidebar: React.FC = () => {
   return (
-    <aside className="hidden md:flex w-56 flex-col border-r bg-background">
-      <div className="flex h-16 items-center border-b px-4">
-        <h1 className="text-lg font-bold tracking-tight">LifeOS</h1>
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
+      <div className="flex h-14 items-center gap-2 px-4">
+        <div className="flex size-6 items-center justify-center rounded-md bg-accent text-xs font-semibold text-accent-foreground">
+          L
+        </div>
+        <span className="text-sm font-semibold tracking-tight">LifeOS</span>
       </div>
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-0.5 px-2 py-2" aria-label="Main">
         {navItems.map(({ path, label, icon: Icon }) => (
           <NavLink
             key={path}
             to={path}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              `flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-accent-soft text-accent-soft-foreground'
+                  : 'text-muted hover:bg-surface-secondary hover:text-foreground'
               }`
             }
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="size-4" />
             {label}
           </NavLink>
         ))}
       </nav>
-      <div className="border-t p-3">
+      <div className="flex items-center justify-between border-t border-border px-3 py-2">
+        <span className="text-xs text-muted">Theme</span>
         <ThemeToggle />
       </div>
     </aside>
