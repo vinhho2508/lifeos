@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import List, Optional
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -47,6 +47,7 @@ class User(Base):
     tasks: Mapped[List["Task"]] = relationship(back_populates="user")
     documents: Mapped[List["Document"]] = relationship(back_populates="user")
     messages: Mapped[List["Message"]] = relationship(back_populates="user")
+    conversations: Mapped[List["Conversation"]] = relationship(back_populates="user")
 
 
 class Task(Base):
@@ -87,10 +88,31 @@ class DocumentChunk(Base):
     document: Mapped["Document"] = relationship(back_populates="chunks")
 
 
+DEFAULT_CONVERSATION_TITLE = "New chat"
+
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200), default=DEFAULT_CONVERSATION_TITLE)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="conversations")
+    messages: Mapped[List["Message"]] = relationship(
+        back_populates="conversation", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
 class Message(Base):
     __tablename__ = "messages"
+    __table_args__ = (Index("ix_messages_conversation_timestamp", "conversation_id", "timestamp"),)
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE")
+    )
     sender: Mapped[SenderEnum] = mapped_column(Enum(SenderEnum))
     platform: Mapped[PlatformEnum] = mapped_column(Enum(PlatformEnum))
     text: Mapped[str] = mapped_column(Text)
@@ -98,6 +120,7 @@ class Message(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="messages")
+    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
 
 
 class UserSettings(Base):

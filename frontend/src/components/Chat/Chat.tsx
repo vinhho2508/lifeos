@@ -4,6 +4,7 @@ import { Button, TextArea } from '@heroui/react'
 import { Message, ContentBlock, ContentDelta } from '@/types/chat'
 import { syncBrowserTimezone } from '@/services/settingsApi'
 import { handleUnauthorized } from '@/services/api'
+import { createConversation, getConversationMessages } from '@/services/chatApi'
 import MessageBubble from './MessageBubble'
 import ThinkingAnimation from './ThinkingAnimation'
 
@@ -13,7 +14,18 @@ const SUGGESTIONS = [
   'Summarize my uploaded documents',
 ]
 
-const Chat: React.FC = () => {
+interface ChatProps {
+  /** Conversation to show; undefined for a new chat (created on first send). */
+  conversationId?: string
+  /** Called when the first send creates a conversation. */
+  onConversationCreated?: (id: string) => void
+  /** Called when a turn finishes, so the list can refresh its auto-title/order. */
+  onTurnComplete?: () => void
+}
+
+const Chat: React.FC<ChatProps> = ({ conversationId, onConversationCreated, onTurnComplete }) => {
+  const activeIdRef = useRef<string | undefined>(conversationId)
+  const createdIdRef = useRef<string | undefined>(undefined)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -36,38 +48,22 @@ const Chat: React.FC = () => {
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`
   }, [input])
 
-  // Load chat history on mount
+  // Load only this conversation's messages
   useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const token = localStorage.getItem('token')
-        const response = await fetch('/api/chat/history', {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : '',
-          },
-        })
-        if (response.status === 401) {
-          handleUnauthorized()
-          return
-        }
-        if (response.ok) {
-          const data = await response.json()
-          const history: Message[] = data.map((m: Record<string, unknown>) => ({
-            id: m.id,
-            sender: m.sender,
-            text: m.text,
-            content: m.content || [],
-            timestamp: m.timestamp,
-          }))
-          setMessages(history)
-        }
-      } catch (err) {
-        console.error('Failed to load history:', err)
-      }
-    }
-    loadHistory()
     syncBrowserTimezone().catch((err) => console.warn('Timezone sync failed:', err))
-  }, [])
+    activeIdRef.current = conversationId
+    // A conversation this chat just created has nothing to load yet (and its stream is live).
+    if (!conversationId || createdIdRef.current === conversationId) return
+    let cancelled = false
+    getConversationMessages(conversationId)
+      .then((history) => {
+        if (!cancelled) setMessages(history)
+      })
+      .catch((err) => console.error('Failed to load history:', err))
+    return () => {
+      cancelled = true
+    }
+  }, [conversationId])
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isStreaming) return
@@ -84,6 +80,14 @@ const Chat: React.FC = () => {
     setHasReceivedFirstToken(false)
 
     try {
+      let targetId = activeIdRef.current
+      if (!targetId) {
+        const created = await createConversation()
+        targetId = created.id
+        activeIdRef.current = targetId
+        createdIdRef.current = targetId
+        onConversationCreated?.(targetId)
+      }
       const token = localStorage.getItem('token')
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
@@ -91,7 +95,7 @@ const Chat: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: token ? `Bearer ${token}` : '',
         },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message: input, conversation_id: targetId }),
       })
 
       if (response.status === 401) {
@@ -167,8 +171,9 @@ const Chat: React.FC = () => {
     } finally {
       setIsStreaming(false)
       setHasReceivedFirstToken(false)
+      onTurnComplete?.()
     }
-  }, [input, isStreaming])
+  }, [input, isStreaming, onConversationCreated, onTurnComplete])
 
   // Determine if we should show the global thinking indicator:
   // streaming is active and no first token yet

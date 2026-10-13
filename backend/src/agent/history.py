@@ -98,10 +98,10 @@ def messages_to_langchain(rows: list[Message]) -> list[BaseMessage]:
 
 
 async def load_history(
-    db: AsyncSession, user_id: uuid.UUID, exclude_ids: set[uuid.UUID] | None = None
+    db: AsyncSession, conversation_id: uuid.UUID, exclude_ids: set[uuid.UUID] | None = None
 ) -> list[BaseMessage]:
-    """Last HISTORY_LIMIT messages across all platforms, oldest first."""
-    query = select(Message).where(Message.user_id == user_id)
+    """Last HISTORY_LIMIT messages of one conversation, oldest first."""
+    query = select(Message).where(Message.conversation_id == conversation_id)
     if exclude_ids:
         query = query.where(Message.id.not_in(exclude_ids))
     query = query.order_by(Message.timestamp.desc()).limit(HISTORY_LIMIT)

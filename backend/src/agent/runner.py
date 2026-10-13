@@ -24,6 +24,7 @@ from src.core.database import async_session_factory
 from src.core.logging import logger
 from src.models.all_models import Message, PlatformEnum, SenderEnum, UserSettings
 from src.providers.factory import get_chat_provider
+from src.services.conversation_service import resolve_conversation, touch
 from src.services.settings_service import get_user_settings
 
 STORED_OUTPUT_MAX_CHARS = 4096
@@ -173,8 +174,9 @@ def _tool_result_events(message: ToolMessage) -> list[dict]:
 
 
 class AgentRun:
-    def __init__(self, run_id: uuid.UUID):
+    def __init__(self, run_id: uuid.UUID, conversation_id: uuid.UUID | None = None):
         self.run_id = run_id
+        self.conversation_id = conversation_id
         self.queue: asyncio.Queue[dict | None] = asyncio.Queue()
         self.task: asyncio.Task | None = None
 
@@ -278,14 +280,26 @@ async def _execute(
         run.queue.put_nowait(None)
 
 
-async def start_run(user_id: uuid.UUID, text: str, platform: PlatformEnum) -> AgentRun:
-    """Save the user's message, then run the agent in the background."""
-    run = AgentRun(uuid.uuid4())
+async def start_run(
+    user_id: uuid.UUID,
+    text: str,
+    platform: PlatformEnum,
+    conversation_id: uuid.UUID | None = None,
+) -> AgentRun:
+    """Save the user's message, then run the agent in the background.
+
+    Raises ConversationNotFound if conversation_id is not one of the user's. Without a
+    conversation_id the user's latest conversation is used (created if none exists).
+    """
     async with async_session_factory() as db:
+        conversation = await resolve_conversation(db, user_id, conversation_id)
+        run = AgentRun(uuid.uuid4(), conversation.id)
         user_settings = await get_user_settings(db, user_id)
-        history = await load_history(db, user_id)
+        history = await load_history(db, conversation.id)
+        touch(conversation, text)
         user_message = Message(
             user_id=user_id,
+            conversation_id=conversation.id,
             sender=SenderEnum.USER,
             platform=platform,
             text=text,
@@ -294,7 +308,12 @@ async def start_run(user_id: uuid.UUID, text: str, platform: PlatformEnum) -> Ag
         db.add(user_message)
         await db.flush()
         assistant_message = Message(
-            user_id=user_id, sender=SenderEnum.ASSISTANT, platform=platform, text="", content=[]
+            user_id=user_id,
+            conversation_id=conversation.id,
+            sender=SenderEnum.ASSISTANT,
+            platform=platform,
+            text="",
+            content=[],
         )
         db.add(assistant_message)
         await db.commit()
