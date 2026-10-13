@@ -1,0 +1,91 @@
+name: Release Images
+
+# Push a tag to build and publish one component's image to GHCR:
+#   lifeos-be-v1.0.0   -> ghcr.io/<owner>/lifeos-backend:1.0.0
+#   lifeos-fe-v1.0.0   -> ghcr.io/<owner>/lifeos-frontend:1.0.0
+#   lifeos-bot-v1.0.0  -> ghcr.io/<owner>/lifeos-slack-bot:1.0.0
+on:
+  push:
+    tags:
+      - 'lifeos-be-v*'
+      - 'lifeos-fe-v*'
+      - 'lifeos-bot-v*'
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve component from tag
+        id: target
+        env:
+          TAG: ${{ github.ref_name }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          case "$TAG" in
+            lifeos-be-v*)  name=backend;   context=backend;   dockerfile=backend/Dockerfile;   version="${TAG#lifeos-be-v}" ;;
+            lifeos-fe-v*)  name=frontend;  context=.;         dockerfile=frontend/Dockerfile;  version="${TAG#lifeos-fe-v}" ;;
+            lifeos-bot-v*) name=slack-bot; context=slack_bot; dockerfile=slack_bot/Dockerfile; version="${TAG#lifeos-bot-v}" ;;
+            *) echo "::error::Unrecognised tag $TAG"; exit 1 ;;
+          esac
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag version '$version' is not semver (expected e.g. 1.0.0 or 1.0.0-rc.1)"
+            exit 1
+          fi
+          {
+            echo "name=$name"
+            echo "context=$context"
+            echo "dockerfile=$dockerfile"
+            echo "version=$version"
+            echo "image=ghcr.io/${OWNER,,}/lifeos-$name"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.target.outputs.image }}
+          # Pre-releases (1.0.0-rc.1) get only their exact tag; releases also move
+          # 1.0, 1 and latest.
+          tags: |
+            type=semver,pattern={{version}},value=${{ steps.target.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.target.outputs.version }}
+            type=semver,pattern={{major}},value=${{ steps.target.outputs.version }}
+            type=sha,prefix=sha-
+          flavor: |
+            latest=auto
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ steps.target.outputs.context }}
+          file: ${{ steps.target.outputs.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Only the frontend Dockerfile declares this; the others ignore it.
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          cache-from: type=gha,scope=${{ steps.target.outputs.name }}
+          cache-to: type=gha,mode=max,scope=${{ steps.target.outputs.name }}

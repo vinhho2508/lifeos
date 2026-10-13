@@ -154,6 +154,16 @@ docker compose up -d --build
 - If a port is already in use, override it with `DB_PORT`, `BACKEND_PORT` or `FRONTEND_PORT`.
 - To run without the Slack bot: `docker compose up -d --build db backend frontend`.
 
+Images are published to GHCR by tagging a release (`.github/workflows/release-images.yml`):
+
+```bash
+git tag lifeos-be-v1.0.0 && git push origin lifeos-be-v1.0.0    # ghcr.io/<owner>/lifeos-backend
+git tag lifeos-fe-v1.0.0 && git push origin lifeos-fe-v1.0.0    # ghcr.io/<owner>/lifeos-frontend
+git tag lifeos-bot-v1.0.0 && git push origin lifeos-bot-v1.0.0  # ghcr.io/<owner>/lifeos-slack-bot
+```
+
+The frontend build reads `VITE_GOOGLE_CLIENT_ID` from the repository's Actions variables.
+
 ### 5. (Optional) Chrome Extension
 
 ```bash
