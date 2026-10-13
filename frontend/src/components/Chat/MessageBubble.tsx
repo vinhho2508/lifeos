@@ -63,8 +63,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // - it's the last message
   // - we're streaming
   // - the bubble has zero content blocks
-  const showBubbleAnimation =
-    !isUser && isLast && isStreaming && message.content.length === 0
+  const showBubbleAnimation = !isUser && isLast && isStreaming && message.content.length === 0
 
   // Tool results render inside the card of the tool_call with the same id.
   const results = new Map<string, ToolResultBlock>()
@@ -76,9 +75,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-          isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-foreground'
+          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
         }`}
       >
         {message.content && message.content.length > 0 ? (

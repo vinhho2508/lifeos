@@ -29,7 +29,6 @@ export async function updateSettings(body: {
   return data
 }
 
-
 export function browserTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone
 }

@@ -25,10 +25,7 @@ const Documents: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <Input
-        type="file"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
-      />
+      <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
       <Button onClick={handleUpload} disabled={uploading}>
         {uploading ? 'Digesting...' : 'Upload & Digest'}
       </Button>

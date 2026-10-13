@@ -33,9 +33,7 @@ const ImageBlock: React.FC<ImageBlockProps> = ({ url, alt }) => {
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
       />
-      {alt && loaded && (
-        <p className="text-xs text-muted-foreground mt-1">{alt}</p>
-      )}
+      {alt && loaded && <p className="text-xs text-muted-foreground mt-1">{alt}</p>}
     </div>
   )
 }

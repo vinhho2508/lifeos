@@ -50,7 +50,12 @@ const TextBlock: React.FC<TextBlockProps> = ({ text }) => {
         },
         a({ href, children }) {
           return (
-            <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noreferrer">
+            <a
+              href={href}
+              className="text-blue-500 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
               {children}
             </a>
           )
@@ -75,7 +80,9 @@ const TextBlock: React.FC<TextBlockProps> = ({ text }) => {
           return <thead className="bg-muted">{children}</thead>
         },
         th({ children }) {
-          return <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>
+          return (
+            <th className="border border-border px-3 py-2 text-left font-semibold">{children}</th>
+          )
         },
         td({ children }) {
           return <td className="border border-border px-3 py-2">{children}</td>

@@ -12,8 +12,7 @@ import {
 
 // Intl.supportedValuesOf is ES2022; tsconfig targets the ES2020 lib.
 const TIMEZONES: string[] =
-  (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone') ??
-  []
+  (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone') ?? []
 
 const SettingsPage: React.FC = () => {
   const [providers, setProviders] = useState<Record<string, ProviderInfo>>({})

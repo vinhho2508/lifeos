@@ -38,20 +38,20 @@ const statusColors: Record<Task['status'], 'default' | 'secondary' | 'destructiv
 
 const columns: Task['status'][] = ['TODO', 'WORKING', 'DONE']
 
-function TaskCard({ task, showButtons, onMoveLeft, onMoveRight }: {
+function TaskCard({
+  task,
+  showButtons,
+  onMoveLeft,
+  onMoveRight,
+}: {
   task: Task
   showButtons: { left: boolean; right: boolean }
   onMoveLeft?: () => void
   onMoveRight?: () => void
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: task.id,
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -80,7 +80,11 @@ function TaskCard({ task, showButtons, onMoveLeft, onMoveRight }: {
   )
 }
 
-function SortableColumn({ status, tasks, onMoveTask }: {
+function SortableColumn({
+  status,
+  tasks,
+  onMoveTask,
+}: {
   status: Task['status']
   tasks: Task[]
   onMoveTask: (id: string, newStatus: Task['status']) => void
@@ -92,19 +96,28 @@ function SortableColumn({ status, tasks, onMoveTask }: {
     <div className="w-64 shrink-0">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-semibold text-sm">{status}</h3>
-        <Badge variant={statusColors[status]}>
-          {tasks.length}
-        </Badge>
+        <Badge variant={statusColors[status]}>{tasks.length}</Badge>
       </div>
-      <SortableContext id={status} items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className="space-y-2 min-h-[200px] rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-2 transition-colors">
+      <SortableContext
+        id={status}
+        items={tasks.map((t) => t.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div
+          ref={setNodeRef}
+          className="space-y-2 min-h-[200px] rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-2 transition-colors"
+        >
           {tasks.map((t) => (
             <TaskCard
               key={t.id}
               task={t}
               showButtons={{ left: colIndex > 0, right: colIndex < columns.length - 1 }}
               onMoveLeft={colIndex > 0 ? () => onMoveTask(t.id, columns[colIndex - 1]) : undefined}
-              onMoveRight={colIndex < columns.length - 1 ? () => onMoveTask(t.id, columns[colIndex + 1]) : undefined}
+              onMoveRight={
+                colIndex < columns.length - 1
+                  ? () => onMoveTask(t.id, columns[colIndex + 1])
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -120,7 +133,7 @@ const Board: React.FC = () => {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
   const fetchTasks = async () => {
@@ -173,9 +186,7 @@ const Board: React.FC = () => {
     }
 
     if (newStatus && newStatus !== activeTask.status) {
-      setTasks((old) =>
-        old.map((t) => (t.id === activeTask.id ? { ...t, status: newStatus! } : t))
-      )
+      setTasks((old) => old.map((t) => (t.id === activeTask.id ? { ...t, status: newStatus! } : t)))
     }
   }
 
