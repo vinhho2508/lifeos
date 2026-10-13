@@ -7,10 +7,7 @@ interface ThinkingBlockProps {
   isStreaming?: boolean
 }
 
-const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
-  thinking,
-  isStreaming = false,
-}) => {
+const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ thinking, isStreaming = false }) => {
   const [expanded, setExpanded] = useState(false)
   const isEmpty = !thinking || thinking.trim().length === 0
 

@@ -1,5 +1,6 @@
-"""Image generation service using OpenAI DALL-E 3 with S3 upload."""
+"""Image generation service using OpenAI GPT Image with S3 upload."""
 
+import base64
 import uuid
 from datetime import datetime
 
@@ -8,9 +9,11 @@ import boto3
 from src.core.database import settings
 from src.core.logging import logger
 
+GPT_IMAGE_MODEL = "gpt-image-1.5"
+
 
 class ImageGenerationService:
-    """Generates images via DALL-E 3 and uploads them to S3."""
+    """Generates images via GPT Image and uploads them to S3."""
 
     def __init__(self):
         self.openai_api_key = settings.OPENAI_API_KEY
@@ -40,37 +43,32 @@ class ImageGenerationService:
 
             client = openai.AsyncOpenAI(api_key=self.openai_api_key)
             response = await client.images.generate(
-                model="dall-e-3",
+                model=GPT_IMAGE_MODEL,
                 prompt=prompt,
                 size="1024x1024",
-                quality="standard",
+                quality="auto",
                 n=1,
             )
-            image_url = response.data[0].url
-            if not image_url:
-                logger.warning("OpenAI returned empty image URL.")
+            image_b64 = response.data[0].b64_json
+            if not image_b64:
+                logger.warning("OpenAI returned empty image payload.")
                 return None
 
-            # If S3 is configured, download and re-upload for persistence
-            if self.s3_client and self.s3_bucket:
-                return await self._upload_to_s3(image_url)
+            image_data = base64.b64decode(image_b64)
 
-            # Otherwise return the temporary OpenAI URL (expires after ~1 hour)
-            return image_url
+            if self.s3_client and self.s3_bucket:
+                return self._upload_bytes_to_s3(image_data)
+
+            # GPT Image models return base64 only; data URLs work for UI without S3.
+            b64 = base64.b64encode(image_data).decode("ascii")
+            return f"data:image/png;base64,{b64}"
         except Exception as e:
             logger.error(f"Image generation failed: {e}")
             return None
 
-    async def _upload_to_s3(self, image_url: str) -> str | None:
-        """Download image from URL and upload to S3, return public URL."""
-        import httpx
-
+    def _upload_bytes_to_s3(self, image_data: bytes) -> str | None:
+        """Upload image bytes to S3 and return the public URL."""
         try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(image_url, timeout=60.0)
-                resp.raise_for_status()
-                image_data = resp.content
-
             key = f"lifeos/images/{datetime.utcnow().isoformat()}_{uuid.uuid4()}.png"
             self.s3_client.put_object(
                 Bucket=self.s3_bucket,
@@ -79,14 +77,12 @@ class ImageGenerationService:
                 ContentType="image/png",
             )
 
-            # Build URL (assumes bucket is public or has presigned access)
             url = f"https://{self.s3_bucket}.s3.{self.s3_region}.amazonaws.com/{key}"
             logger.info(f"Uploaded image to S3: {url}")
             return url
         except Exception as e:
             logger.error(f"S3 upload failed: {e}")
-            # Fallback to the original temporary URL
-            return image_url
+            return None
 
 
 image_service = ImageGenerationService()

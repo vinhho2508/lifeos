@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-border: hsl(var(--border));
@@ -79,7 +79,11 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-family:
+      Inter,
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 }
 
@@ -88,7 +92,8 @@
    --------------------------------------------------------------------------- */
 
 @keyframes thinking-dot-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.3;
     transform: scale(0.8);
   }
@@ -120,11 +125,6 @@
 }
 
 .thinking-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    hsl(var(--primary) / 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.4), transparent);
   animation: thinking-shimmer-sweep 2s ease-in-out infinite;
 }

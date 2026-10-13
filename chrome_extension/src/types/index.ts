@@ -33,5 +33,5 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   mode: 'with_backend',
   backendUrl: 'http://localhost:8000',
   openaiApiKey: '',
-  openaiModel: 'gpt-4o-mini',
+  openaiModel: 'gpt-5.4-nano',
 }

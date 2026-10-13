@@ -16,5 +16,8 @@ async def get_embeddings(texts: List[str]):
         # Mock embeddings
         return [[0.1] * 1536 for _ in texts]
 
-    embeddings = OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(
+        openai_api_key=settings.OPENAI_API_KEY,
+        model="text-embedding-3-small",
+    )
     return await embeddings.aembed_documents(texts)

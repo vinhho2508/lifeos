@@ -1,15 +1,21 @@
-import pytest
-from httpx import ASGITransport, AsyncClient
+"""The old pipeline created a task for every message without document context."""
 
-from src.main import app
+from langchain_core.messages import AIMessage
+
+from tests.agent_helpers import call, run_turn, tasks_of, use_script
 
 
-@pytest.mark.asyncio
-async def test_chat_add_task_no_auth():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.post(
-            "/chat", json={"message": "Remind me to buy milk", "platform": "WEB"}
-        )
+async def test_small_talk_creates_no_task(owner, monkeypatch):
+    for text in ("hi", "thanks!", "how are you?"):
+        use_script(monkeypatch, AIMessage(content="Hello!"))
+        await run_turn(owner, text)
 
-    # Unauthorized if no token
-    assert response.status_code == 401
+    assert await tasks_of(owner) == []
+
+
+async def test_reminder_creates_exactly_one_task(owner, monkeypatch):
+    use_script(monkeypatch, call("create_task", title="Buy milk"), AIMessage(content="Added."))
+
+    await run_turn(owner, "Remind me to buy milk")
+
+    assert [t.title for t in await tasks_of(owner)] == ["Buy milk"]

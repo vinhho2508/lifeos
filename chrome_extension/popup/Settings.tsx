@@ -22,10 +22,7 @@ const SettingsPage: React.FC = () => {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const updateField = <K extends keyof ExtensionSettings>(
-    key: K,
-    value: ExtensionSettings[K]
-  ) => {
+  const updateField = <K extends keyof ExtensionSettings>(key: K, value: ExtensionSettings[K]) => {
     setLocalSettings((prev) => (prev ? { ...prev, [key]: value } : prev))
   }
 
@@ -70,7 +67,7 @@ const SettingsPage: React.FC = () => {
                     : 'border-input bg-background hover:bg-accent'
                 }`}
               >
-                Direct (OpenAI)
+                Direct (OpenAI, no tools)
               </button>
             </div>
           </div>
@@ -93,6 +90,9 @@ const SettingsPage: React.FC = () => {
           {/* Direct Settings */}
           {settings.mode === 'non_backend' && (
             <>
+              <p className="text-xs text-muted-foreground">
+                Plain chat only: the agent&apos;s tools (tasks, documents, images) need the backend.
+              </p>
               <div>
                 <label className="mb-1.5 block text-sm font-medium">OpenAI API Key</label>
                 <Input
@@ -107,7 +107,7 @@ const SettingsPage: React.FC = () => {
                 <Input
                   value={settings.openaiModel}
                   onChange={(e) => updateField('openaiModel', e.target.value)}
-                  placeholder="gpt-4o-mini"
+                  placeholder="gpt-5.4-nano"
                 />
               </div>
             </>

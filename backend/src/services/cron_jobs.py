@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 import httpx
 from sqlalchemy import select
@@ -31,7 +31,7 @@ async def hourly_task_reminder() -> None:
     """Find overdue tasks and send a Slack DM for each."""
     logger.info("Running hourly_task_reminder...")
     async with async_session_factory() as db:
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         result = await db.execute(
             select(Task).where(
                 Task.due_date <= now,
@@ -120,6 +120,14 @@ async def crypto_price_update() -> None:
 
     await send_slack_dm("\n".join(lines))
     logger.info(f"Sent crypto update with {len(coins)} coin(s).")
+
+
+@cron_service.register("30 3 * * *", name="prune_agent_checkpoints")
+async def prune_agent_checkpoints() -> None:
+    """Delete agent checkpoint threads older than the retention window."""
+    from src.agent.checkpointer import prune_old_threads
+
+    await prune_old_threads()
 
 
 # @cron_service.register("* * * * *", name="random_message")

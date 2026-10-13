@@ -3,9 +3,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  )
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
 
   useEffect(() => {
     localStorage.setItem('theme', dark ? 'dark' : 'light')

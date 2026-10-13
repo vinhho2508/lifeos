@@ -3,6 +3,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Message, ContentBlock, ContentDelta } from '@/types/chat'
+import { syncBrowserTimezone } from '@/services/settingsApi'
+import { handleUnauthorized } from '@/services/api'
 import MessageBubble from './MessageBubble'
 import ThinkingAnimation from './ThinkingAnimation'
 
@@ -30,6 +32,10 @@ const Chat: React.FC = () => {
             Authorization: token ? `Bearer ${token}` : '',
           },
         })
+        if (response.status === 401) {
+          handleUnauthorized()
+          return
+        }
         if (response.ok) {
           const data = await response.json()
           const history: Message[] = data.map((m: Record<string, unknown>) => ({
@@ -46,6 +52,7 @@ const Chat: React.FC = () => {
       }
     }
     loadHistory()
+    syncBrowserTimezone().catch((err) => console.warn('Timezone sync failed:', err))
   }, [])
 
   const handleSend = useCallback(async () => {
@@ -73,6 +80,10 @@ const Chat: React.FC = () => {
         body: JSON.stringify({ message: input }),
       })
 
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
@@ -197,18 +208,18 @@ function applyDelta(blocks: ContentBlock[], delta: ContentDelta): ContentBlock[]
     case 'text': {
       const last = next[next.length - 1]
       if (last && last.type === 'text') {
-        next[next.length - 1] = { ...last, text: last.text + delta.delta }
+        next[next.length - 1] = { ...last, text: last.text + (delta.delta ?? '') }
       } else {
-        next.push({ type: 'text', text: delta.delta })
+        next.push({ type: 'text', text: delta.delta ?? '' })
       }
       break
     }
     case 'thinking': {
       const last = next[next.length - 1]
       if (last && last.type === 'thinking') {
-        next[next.length - 1] = { ...last, thinking: last.thinking + delta.delta }
+        next[next.length - 1] = { ...last, thinking: last.thinking + (delta.delta ?? '') }
       } else {
-        next.push({ type: 'thinking', thinking: delta.delta })
+        next.push({ type: 'thinking', thinking: delta.delta ?? '' })
       }
       break
     }
@@ -232,17 +243,26 @@ function applyDelta(blocks: ContentBlock[], delta: ContentDelta): ContentBlock[]
     case 'tool_call': {
       next.push({
         type: 'tool_call',
+        id: delta.id || '',
         name: delta.name || 'tool',
         input: delta.input || {},
       })
       break
     }
     case 'tool_result': {
+      // Rendered inside its tool_call's card, matched by id (see MessageBubble).
       next.push({
         type: 'tool_result',
+        id: delta.id || '',
         name: delta.name || 'tool',
-        output: delta.output || '',
+        status: delta.status || 'ok',
+        summary: delta.summary || '',
+        output: delta.output ?? null,
       })
+      break
+    }
+    case 'error': {
+      next.push({ type: 'error', message: delta.message || 'Something went wrong.' })
       break
     }
     default:
@@ -270,7 +290,7 @@ function blocksToText(blocks: ContentBlock[]): string {
         case 'tool_call':
           return `\n[Tool: ${b.name}]\n`
         case 'tool_result':
-          return `\n[Result: ${b.output}]\n`
+          return `\n[Result: ${b.summary}]\n`
         default:
           return ''
       }

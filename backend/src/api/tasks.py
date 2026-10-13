@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
 from src.models.all_models import StatusEnum, Task, User
+from src.services import task_service
 from src.services.nlp import extract_task_info
+from src.services.settings_service import get_user_settings
 from src.services.task_service import create_task, get_tasks
 
 router = APIRouter()
@@ -39,13 +41,7 @@ async def update_task(task_id: uuid.UUID, update: TaskUpdate, db: AsyncSession =
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if update.title:
-        task.title = update.title
-    if update.status:
-        task.status = update.status
-
-    await db.commit()
-    return task
+    return await task_service.update_task(db, task, title=update.title, status=update.status)
 
 
 @router.post("/from-message")
@@ -55,7 +51,13 @@ async def create_task_from_message(req: TaskFromMessageRequest, db: AsyncSession
     if not user:
         raise HTTPException(status_code=401)
 
-    info = extract_task_info(req.message)
+    user_settings = await get_user_settings(db, user.id)
+    info = await extract_task_info(
+        req.message,
+        provider_name=user_settings.chat_provider,
+        model=user_settings.chat_model,
+        timezone=user_settings.timezone,
+    )
     task = await create_task(
         db,
         user.id,

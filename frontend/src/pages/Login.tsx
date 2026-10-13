@@ -7,24 +7,27 @@ const Login: React.FC = () => {
   const navigate = useNavigate()
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
-  const handleCallbackResponse = useCallback(async (response: { credential: string }) => {
-    try {
-      const res = await api.post('/auth/login', {
-        token: response.credential,
-      })
+  const handleCallbackResponse = useCallback(
+    async (response: { credential: string }) => {
+      try {
+        const res = await api.post('/auth/login', {
+          token: response.credential,
+        })
 
-      localStorage.setItem('token', res.data.access_token)
-      navigate('/chat')
-    } catch (err: unknown) {
-      console.error('Login failed:', err)
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { detail?: string } } }
-        alert(axiosErr.response?.data?.detail || 'Unauthorized account')
-      } else {
-        alert('Login failed')
+        localStorage.setItem('token', res.data.access_token)
+        navigate('/chat')
+      } catch (err: unknown) {
+        console.error('Login failed:', err)
+        if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response?: { data?: { detail?: string } } }
+          alert(axiosErr.response?.data?.detail || 'Unauthorized account')
+        } else {
+          alert('Login failed')
+        }
       }
-    }
-  }, [navigate])
+    },
+    [navigate],
+  )
 
   useEffect(() => {
     if (window.google) {
@@ -33,10 +36,10 @@ const Login: React.FC = () => {
         callback: handleCallbackResponse,
       })
 
-      window.google.accounts.id.renderButton(
-        document.getElementById('signInDiv'),
-        { theme: 'outline', size: 'large' }
-      )
+      window.google.accounts.id.renderButton(document.getElementById('signInDiv'), {
+        theme: 'outline',
+        size: 'large',
+      })
     }
   }, [clientId, handleCallbackResponse])
 
@@ -49,9 +52,7 @@ const Login: React.FC = () => {
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
           <div id="signInDiv"></div>
-          <p className="text-sm text-muted-foreground">
-            Only vinhho2508@gmail.com is authorized.
-          </p>
+          <p className="text-sm text-muted-foreground">Only vinhho2508@gmail.com is authorized.</p>
         </CardContent>
       </Card>
     </div>

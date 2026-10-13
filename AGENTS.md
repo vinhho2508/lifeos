@@ -8,12 +8,13 @@ Personal assistant (Chat, Kanban, Reminders, RAG) restricted to a single Google 
 
 - `backend/` — FastAPI + async SQLAlchemy + pgvector
 - `frontend/` — React 18 + TypeScript + Vite + Vanilla CSS
-- `slack_bot/` — Slack Bolt (Socket Mode), forwards messages to backend `/chat/`
+- `slack_bot/` — Slack Bolt (Socket Mode), forwards messages to backend `/chat/stream` (auth: `X-Service-Token`)
 - `specs/001-lifeos-assistant/` — Feature spec, plan, quickstart, and data model
 
 ## Critical Commands
 
 ### Backend
+
 ```bash
 cd backend
 source venv/bin/activate
@@ -25,6 +26,7 @@ ruff format .                   # format
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
@@ -34,6 +36,7 @@ npm run lint     # eslint . --ext ts,tsx
 ```
 
 ### Slack Bot
+
 ```bash
 cd slack_bot
 source venv/bin/activate
@@ -41,13 +44,16 @@ python src/main.py
 ```
 
 ### Database
+
 ```bash
 docker-compose up -d   # pgvector/pgvector:pg16 on :5432
 ```
 
 ## Architecture Notes
 
-- **No Alembic migrations yet**: `backend/src/main.py` calls `Base.metadata.create_all()` on startup. Do not look for migration scripts.
+- **Alembic migrations** in `backend/migrations/`, run automatically by the FastAPI lifespan (`src/core/migrations.py`). A pre-migration database (tables but no `alembic_version`) is stamped at `0001` first. After changing models: `cd backend && alembic revision --autogenerate -m "..."`, then review the file.
+- **Chat agent**: `backend/src/agent/` — `create_agent` (LangChain v1) with tools in `tools.py`, policies as middleware in `middleware.py`, history replay in `history.py`, stream mapping and persistence in `runner.py`. The stream contract is `specs/002-agent-loop/contracts/chat-stream.md`. Tools take the user from `runtime.context` (`AgentContext`), never from model arguments.
+- **Auth**: `get_current_user` (`backend/src/core/auth.py`) guards `/chat/*` (JWT bearer or `X-Service-Token`). The tasks, documents and settings routers still use the first user in the DB.
 - **Async SQLAlchemy 2.0 everywhere**: `create_async_engine`, `AsyncSession`, `mapped_column`, `Mapped[...]`. Never use sync engines or `session.query()`.
 - **Single-user hardcode**: Auth allows only `vinhho2508@gmail.com` via `ALLOWED_USER_EMAIL` in `backend/src/core/database.py` (`Settings`).
 - **Backend auto-creates `vector` extension** on startup (`CREATE EXTENSION IF NOT EXISTS vector`).
@@ -69,8 +75,9 @@ Backend loads `.env` from cwd via `pydantic-settings` (`env_file=".env"`). Run b
 
 ## Testing Quirks
 
-- Backend uses `pytest-asyncio` (`@pytest.mark.asyncio`).
-- Tests instantiate the real FastAPI app (`from src.main import app`) and use `httpx.AsyncClient`. They require a running PostgreSQL database (no in-memory override).
+- Backend uses `pytest-asyncio` in auto mode with one session-wide event loop (`pyproject.toml`).
+- Tests run against `<DATABASE_URL db>_test` (or `TEST_DATABASE_URL`), rebuild its schema through the migrations, and truncate tables per test; `tests/conftest.py` refuses any database not named `*_test`. Create it once: `createdb lifeos_test`.
+- Tests never call an LLM: provider keys are blanked, and agent tests script the model with `ScriptedChatModel` (`tests/agent_helpers.py::use_script`).
 - Frontend has **no test framework installed yet** despite `plan.md` mentioning Vitest. `frontend/package.json` has no test script.
 
 ## Style & Linting
@@ -89,6 +96,7 @@ Backend loads `.env` from cwd via `pydantic-settings` (`env_file=".env"`). Run b
 ## Speckit / Gemini Workflow
 
 This repo was bootstrapped with Speckit. If extending the spec-driven workflow, see:
+
 - `GEMINI.md` — short pointer to the current plan
 - `specs/001-lifeos-assistant/plan.md` — implementation plan and constitution checks
 - `.specify/` and `.gemini/` — workflow templates and commands
@@ -96,6 +104,7 @@ This repo was bootstrapped with Speckit. If extending the spec-driven workflow, 
 When adding a new major feature, follow the existing `specs/001-lifeos-assistant/` structure or create a new `specs/XXX-feature-name/` directory.
 
 <!-- graft:start -->
+
 ## Graft — repo context graph
 
 This repo is indexed in `graft/`: small linked markdown nodes that explain each

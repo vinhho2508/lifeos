@@ -1,8 +1,8 @@
 AVAILABLE_PROVIDERS = {
     "openai": {
         "name": "OpenAI",
-        "models": ["gpt-4.1", "gpt-4.1-mini", "gpt-4o", "gpt-4o-mini"],
-        "default_model": "gpt-4o-mini",
+        "models": ["gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.2"],
+        "default_model": "gpt-5.4-nano",
     },
     "gemini": {
         "name": "Google Gemini",

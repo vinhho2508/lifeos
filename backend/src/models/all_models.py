@@ -1,6 +1,6 @@
 import enum
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import List, Optional
 
 from pgvector.sqlalchemy import Vector
@@ -8,6 +8,10 @@ from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
+
+
+def utcnow() -> datetime:
+    return datetime.now(UTC)
 
 
 class StatusEnum(enum.Enum):
@@ -52,9 +56,9 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[Optional[str]] = mapped_column(Text)
     status: Mapped[StatusEnum] = mapped_column(Enum(StatusEnum), default=StatusEnum.TODO)
-    due_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    due_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     user: Mapped["User"] = relationship(back_populates="tasks")
 
@@ -101,7 +105,9 @@ class UserSettings(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), unique=True)
     chat_provider: Mapped[str] = mapped_column(String(50), default="openai")
-    chat_model: Mapped[str] = mapped_column(String(100), default="gpt-4o-mini")
+    chat_model: Mapped[str] = mapped_column(String(100), default="gpt-5.4-nano")
+    # IANA zone name; relative dates in chat ("Friday 9am") resolve in this zone.
+    timezone: Mapped[str] = mapped_column(String(64), default="UTC", server_default="UTC")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
