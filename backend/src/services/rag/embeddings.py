@@ -5,6 +5,8 @@ Tests (and evals) swap the implementation with set_embedder().
 
 from collections.abc import Awaitable, Callable
 
+from langsmith import traceable
+
 from src.core.database import settings
 
 EMBEDDING_DIM = 1536
@@ -21,6 +23,13 @@ class EmbeddingsNotConfigured(Exception):
         super().__init__("Embeddings are not configured (OPENAI_API_KEY is not set).")
 
 
+def _trace_outputs(vectors: list[list[float]]) -> dict:
+    # Vectors are large and unreadable in a trace; record only their shape.
+    return {"count": len(vectors), "dim": len(vectors[0]) if vectors else 0}
+
+
+# Traced to LangSmith when tracing is on (src.core.tracing); otherwise a plain call.
+@traceable(run_type="embedding", name="openai_embed", process_outputs=_trace_outputs)
 async def _openai_embed(texts: list[str]) -> list[list[float]]:
     if not settings.OPENAI_API_KEY:
         raise EmbeddingsNotConfigured()

@@ -28,6 +28,7 @@ from sqlalchemy import text  # noqa: E402
 from src.agent import runner  # noqa: E402
 from src.core.database import async_session_factory, engine  # noqa: E402
 from src.core.migrations import run_migrations  # noqa: E402
+from src.core.tracing import setup_tracing  # noqa: E402
 from src.models.all_models import (  # noqa: E402
     DocStatusEnum,
     Document,
@@ -173,4 +174,5 @@ async def main(selected: list[str]) -> int:
 
 
 if __name__ == "__main__":
+    setup_tracing()
     sys.exit(asyncio.run(main(sys.argv[1:])))

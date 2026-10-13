@@ -176,6 +176,8 @@ Load `dist/` as an unpacked extension in `chrome://extensions/`. See [chrome_ext
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | S3 / R2 access keys                                            | `backend/.env`                      |
 | `S3_ENDPOINT_URL`                             | S3-compatible endpoint, e.g. Cloudflare R2 (`AWS_REGION=auto`) | `backend/.env`                      |
 | `S3_PUBLIC_URL`                               | Public base URL for generated image links (R2 domain)          | `backend/.env`                      |
+| `LANGSMITH_TRACING` / `LANGSMITH_API_KEY`     | Trace agent runs to LangSmith (both needed to enable)          | `backend/.env`                      |
+| `LANGSMITH_PROJECT` / `LANGSMITH_ENDPOINT`    | LangSmith project (default `lifeos`) and non-US/self-hosted URL | `backend/.env`                      |
 
 For the complete reference, see `specs/001-lifeos-assistant/quickstart.md`.
 
