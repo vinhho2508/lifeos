@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { MessageSquare, ListTodo } from 'lucide-react'
+import { Tabs } from '@heroui/react'
 import ChatPanel from './components/ChatPanel.tsx'
 import TaskPanel from './components/TaskPanel.tsx'
 import ModeBadge from './components/ModeBadge.tsx'
@@ -27,44 +28,40 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-base font-semibold">LifeOS</span>
-          <ModeBadge mode={mode} />
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <div className="flex size-5 items-center justify-center rounded-md bg-accent text-[11px] font-semibold text-accent-foreground">
+          L
         </div>
+        <span className="text-sm font-semibold tracking-tight">LifeOS</span>
+        <ModeBadge mode={mode} />
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b">
-        <button
-          onClick={() => setActiveTab('chat')}
-          className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
-            activeTab === 'chat'
-              ? 'border-b-2 border-primary text-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <MessageSquare className="h-4 w-4" />
-          Chat
-        </button>
-        <button
-          onClick={() => setActiveTab('tasks')}
-          className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
-            activeTab === 'tasks'
-              ? 'border-b-2 border-primary text-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <ListTodo className="h-4 w-4" />
-          Tasks
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {activeTab === 'chat' ? <ChatPanel /> : <TaskPanel />}
-      </div>
+      <Tabs
+        className="flex min-h-0 flex-1 flex-col"
+        selectedKey={activeTab}
+        onSelectionChange={(key) => setActiveTab(key as Tab)}
+      >
+        <Tabs.ListContainer className="px-3 py-2">
+          <Tabs.List aria-label="Sections">
+            <Tabs.Tab id="chat">
+              <MessageSquare className="mr-1.5 inline size-4" />
+              Chat
+              <Tabs.Indicator />
+            </Tabs.Tab>
+            <Tabs.Tab id="tasks">
+              <ListTodo className="mr-1.5 inline size-4" />
+              Tasks
+              <Tabs.Indicator />
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs.ListContainer>
+        <Tabs.Panel id="chat" className="min-h-0 flex-1">
+          <ChatPanel />
+        </Tabs.Panel>
+        <Tabs.Panel id="tasks" className="min-h-0 flex-1">
+          <TaskPanel />
+        </Tabs.Panel>
+      </Tabs>
     </div>
   )
 }

@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Settings2, Save, Check } from 'lucide-react'
+import { Button, Card, Description, Input, Label, TextField, Toast, toast } from '@heroui/react'
+import { Save, Settings2 } from 'lucide-react'
 import { getSettings, setSettings } from '@/lib/storage'
 import type { ExtensionSettings } from '@/types'
 
 const SettingsPage: React.FC = () => {
   const [settings, setLocalSettings] = useState<ExtensionSettings | null>(null)
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     getSettings().then(setLocalSettings)
@@ -18,8 +14,7 @@ const SettingsPage: React.FC = () => {
   const handleSave = async () => {
     if (!settings) return
     await setSettings(settings)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    toast.success('Settings saved')
   }
 
   const updateField = <K extends keyof ExtensionSettings>(key: K, value: ExtensionSettings[K]) => {
@@ -29,111 +24,87 @@ const SettingsPage: React.FC = () => {
   if (!settings) {
     return (
       <div className="flex h-[320px] items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-muted">Loading…</p>
       </div>
     )
   }
 
   return (
     <div className="p-4">
-      <Card>
-        <CardHeader className="pb-3">
+      <Toast.Provider />
+      <Card className="gap-4">
+        <Card.Header>
           <div className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5" />
-            <CardTitle className="text-base">LifeOS Settings</CardTitle>
+            <Settings2 className="size-4 text-muted" />
+            <Card.Title className="text-base">LifeOS settings</Card.Title>
           </div>
-          <CardDescription>Configure your extension mode and API keys</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Mode Selection */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Mode</label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => updateField('mode', 'with_backend')}
-                className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors ${
-                  settings.mode === 'with_backend'
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-input bg-background hover:bg-accent'
-                }`}
+          <Card.Description>Configure your extension mode and API keys.</Card.Description>
+        </Card.Header>
+        <Card.Content className="space-y-4">
+          <div role="group" aria-label="Mode" className="space-y-1.5">
+            <span className="text-sm font-medium">Mode</span>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant={settings.mode === 'with_backend' ? 'primary' : 'secondary'}
+                aria-pressed={settings.mode === 'with_backend'}
+                onPress={() => updateField('mode', 'with_backend')}
               >
-                With Backend
-              </button>
-              <button
-                onClick={() => updateField('mode', 'non_backend')}
-                className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors ${
-                  settings.mode === 'non_backend'
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-input bg-background hover:bg-accent'
-                }`}
+                With backend
+              </Button>
+              <Button
+                size="sm"
+                variant={settings.mode === 'non_backend' ? 'primary' : 'secondary'}
+                aria-pressed={settings.mode === 'non_backend'}
+                onPress={() => updateField('mode', 'non_backend')}
               >
-                Direct (OpenAI, no tools)
-              </button>
+                Direct (OpenAI)
+              </Button>
             </div>
           </div>
 
-          {/* Backend Settings */}
           {settings.mode === 'with_backend' && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">Backend URL</label>
-              <Input
-                value={settings.backendUrl}
-                onChange={(e) => updateField('backendUrl', e.target.value)}
-                placeholder="http://localhost:8000"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Must be logged into the LifeOS web app.
-              </p>
-            </div>
+            <TextField
+              fullWidth
+              value={settings.backendUrl}
+              onChange={(v) => updateField('backendUrl', v)}
+            >
+              <Label>Backend URL</Label>
+              <Input placeholder="http://localhost:8000" />
+              <Description>Must be logged into the LifeOS web app.</Description>
+            </TextField>
           )}
 
-          {/* Direct Settings */}
           {settings.mode === 'non_backend' && (
             <>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 Plain chat only: the agent&apos;s tools (tasks, documents, images) need the backend.
               </p>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">OpenAI API Key</label>
-                <Input
-                  type="password"
-                  value={settings.openaiApiKey}
-                  onChange={(e) => updateField('openaiApiKey', e.target.value)}
-                  placeholder="sk-..."
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Model</label>
-                <Input
-                  value={settings.openaiModel}
-                  onChange={(e) => updateField('openaiModel', e.target.value)}
-                  placeholder="gpt-5.4-nano"
-                />
-              </div>
+              <TextField
+                fullWidth
+                type="password"
+                value={settings.openaiApiKey}
+                onChange={(v) => updateField('openaiApiKey', v)}
+              >
+                <Label>OpenAI API key</Label>
+                <Input placeholder="sk-..." />
+              </TextField>
+              <TextField
+                fullWidth
+                value={settings.openaiModel}
+                onChange={(v) => updateField('openaiModel', v)}
+              >
+                <Label>Model</Label>
+                <Input placeholder="gpt-5.4-nano" />
+              </TextField>
             </>
           )}
 
-          {/* Save Button */}
-          <Button onClick={handleSave} className="w-full">
-            {saved ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Saved
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Settings
-              </>
-            )}
+          <Button fullWidth onPress={handleSave}>
+            <Save className="size-4" />
+            Save settings
           </Button>
-
-          {saved && (
-            <Badge variant="outline" className="w-full justify-center">
-              Settings saved successfully
-            </Badge>
-          )}
-        </CardContent>
+        </Card.Content>
       </Card>
     </div>
   )

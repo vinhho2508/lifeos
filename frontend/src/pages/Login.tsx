@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, toast } from '@heroui/react'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -20,9 +20,9 @@ const Login: React.FC = () => {
         console.error('Login failed:', err)
         if (err && typeof err === 'object' && 'response' in err) {
           const axiosErr = err as { response?: { data?: { detail?: string } } }
-          alert(axiosErr.response?.data?.detail || 'Unauthorized account')
+          toast.danger(axiosErr.response?.data?.detail || 'Unauthorized account')
         } else {
-          alert('Login failed')
+          toast.danger('Login failed')
         }
       }
     },
@@ -44,16 +44,19 @@ const Login: React.FC = () => {
   }, [clientId, handleCallbackResponse])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>LifeOS Login</CardTitle>
-          <CardDescription>Sign in with your Google account</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center gap-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-sm items-center gap-6 p-8 text-center">
+        <div className="flex size-10 items-center justify-center rounded-xl bg-accent text-lg font-semibold text-accent-foreground">
+          L
+        </div>
+        <Card.Header className="items-center">
+          <Card.Title className="text-lg">Welcome to LifeOS</Card.Title>
+          <Card.Description>Sign in with your Google account to continue.</Card.Description>
+        </Card.Header>
+        <Card.Content className="flex flex-col items-center gap-4">
           <div id="signInDiv"></div>
-          <p className="text-sm text-muted-foreground">Only vinhho2508@gmail.com is authorized.</p>
-        </CardContent>
+          <p className="text-xs text-muted">Only vinhho2508@gmail.com is authorized.</p>
+        </Card.Content>
       </Card>
     </div>
   )

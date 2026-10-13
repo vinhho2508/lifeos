@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button, Card, Chip, Input, Skeleton } from '@heroui/react'
 import { CheckCircle2, Circle, Clock, Trash2 } from 'lucide-react'
 import type { Task } from '@/types'
 import { getTasks, createTask } from '@/lib/api'
@@ -66,88 +64,85 @@ const TaskPanel: React.FC = () => {
   const statusIcon = (status: Task['status']) => {
     switch (status) {
       case 'DONE':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
+        return <CheckCircle2 className="size-4 text-success" />
       case 'WORKING':
-        return <Clock className="h-4 w-4 text-amber-500" />
+        return <Clock className="size-4 text-warning" />
       default:
-        return <Circle className="h-4 w-4 text-muted-foreground" />
+        return <Circle className="size-4 text-muted" />
     }
   }
 
-  const statusVariant = (status: Task['status']) => {
-    switch (status) {
-      case 'DONE':
-        return 'default'
-      case 'WORKING':
-        return 'secondary'
-      default:
-        return 'outline'
-    }
+  const statusLabel: Record<Task['status'], string> = {
+    TODO: 'To do',
+    WORKING: 'In progress',
+    DONE: 'Done',
+  }
+  const statusColor: Record<Task['status'], 'default' | 'warning' | 'success'> = {
+    TODO: 'default',
+    WORKING: 'warning',
+    DONE: 'success',
   }
 
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-4 flex gap-2">
-        <input
+        <Input
+          fullWidth
+          aria-label="New task"
           value={newTaskInput}
           onChange={(e) => setNewTaskInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-          placeholder="Add a new task..."
-          className="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          placeholder="Add a new task…"
         />
-        <button
-          onClick={handleAddTask}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
+        <Button isDisabled={!newTaskInput.trim()} onPress={handleAddTask}>
           Add
-        </button>
+        </Button>
       </div>
-      <ScrollArea className="flex-1">
-        <div className="space-y-2">
-          {loading && <p className="text-sm text-muted-foreground">Loading tasks...</p>}
-          {!loading && tasks.length === 0 && (
-            <p className="text-sm text-muted-foreground">No tasks yet.</p>
-          )}
-          {tasks.map((task) => (
-            <Card key={task.id} className="cursor-pointer hover:bg-accent/50">
-              <CardHeader className="p-3 pb-0">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-sm font-medium">{task.title}</CardTitle>
-                  <button
-                    onClick={() => handleDelete(task.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-3 pt-1">
-                {task.description && (
-                  <p className="mb-2 text-xs text-muted-foreground line-clamp-2">
-                    {task.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleStatusChange(task)}
-                    className="flex items-center gap-1"
-                  >
-                    {statusIcon(task.status)}
-                  </button>
-                  <Badge variant={statusVariant(task.status)} className="text-[10px]">
-                    {task.status}
-                  </Badge>
-                  {task.due_date && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">
-                      {new Date(task.due_date).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </ScrollArea>
+      <div className="flex-1 space-y-2 overflow-y-auto">
+        {loading && (
+          <>
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+          </>
+        )}
+        {!loading && tasks.length === 0 && <p className="text-sm text-muted">No tasks yet.</p>}
+        {tasks.map((task) => (
+          <Card key={task.id} className="gap-2 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium leading-snug">{task.title}</p>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                aria-label={`Delete ${task.title}`}
+                onPress={() => handleDelete(task.id)}
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </div>
+            {task.description && (
+              <p className="line-clamp-2 text-xs text-muted">{task.description}</p>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleStatusChange(task)}
+                aria-label={`Status: ${statusLabel[task.status]}. Click to advance.`}
+                className="flex items-center gap-1 rounded-md"
+              >
+                {statusIcon(task.status)}
+              </button>
+              <Chip size="sm" color={statusColor[task.status]} variant="soft">
+                {statusLabel[task.status]}
+              </Chip>
+              {task.due_date && (
+                <span className="ml-auto text-[11px] text-muted">
+                  {new Date(task.due_date).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }

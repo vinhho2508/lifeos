@@ -1,14 +1,17 @@
 import React from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
+import { MobileTabBar, MobileTopBar } from './MobileNav'
 
 const Layout: React.FC = () => {
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-dvh flex-col bg-background text-foreground md:flex-row">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6">
+      <MobileTopBar />
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <Outlet />
       </main>
+      <MobileTabBar />
     </div>
   )
 }

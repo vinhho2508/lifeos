@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Send, Plus, Loader2 } from 'lucide-react'
+import { Alert, Button, TextArea } from '@heroui/react'
+import { ArrowUp, Plus, Loader2 } from 'lucide-react'
 import type { Message } from '@/types'
 import { sendChatMessage, getChatHistory, createTask } from '@/lib/api'
 import { addLocalMessage, setSelectedText, getSelectedText } from '@/lib/storage'
@@ -14,6 +11,14 @@ const ChatPanel: React.FC = () => {
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`
+  }, [input])
 
   useEffect(() => {
     loadHistory()
@@ -137,58 +142,71 @@ const ChatPanel: React.FC = () => {
 
   return (
     <div className="flex h-full flex-col">
-      <ScrollArea className="flex-1 px-4 py-2">
-        <div ref={scrollRef} className="space-y-3">
-          {messages.map((m, i) => (
-            <div key={m.id || i} className="group">
-              <div
-                className={`max-w-[90%] rounded-2xl px-4 py-2 text-sm ${
-                  m.sender === 'USER'
-                    ? 'ml-auto bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground'
-                }`}
-              >
-                <span className="whitespace-pre-wrap">{m.text}</span>
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
+        {messages.length === 0 && !isStreaming && (
+          <p className="pt-10 text-center text-sm text-muted">
+            Ask anything, or select text on a page to send it here.
+          </p>
+        )}
+        {messages.map((m, i) => (
+          <div key={m.id || i} className="group">
+            <div
+              className={
+                m.sender === 'USER'
+                  ? 'ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-md bg-accent px-3.5 py-2 text-sm text-accent-foreground'
+                  : 'text-sm leading-relaxed text-foreground'
+              }
+            >
+              <span className="whitespace-pre-wrap">{m.text}</span>
+            </div>
+            {m.sender === 'USER' && !isStreaming && (
+              <div className="mt-1 flex justify-end opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                <Button size="sm" variant="ghost" onPress={() => handleAddTask(m.text)}>
+                  <Plus className="size-3" />
+                  Add as task
+                </Button>
               </div>
-              {m.sender === 'USER' && !isStreaming && (
-                <div className="mt-1 flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => handleAddTask(m.text)}
-                  >
-                    <Plus className="mr-1 h-3 w-3" />
-                    Add as Task
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-          {isStreaming && messages[messages.length - 1]?.sender === 'USER' && (
-            <div className="max-w-[90%] rounded-2xl bg-muted px-4 py-2 text-sm text-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-            </div>
-          )}
-          {error && (
-            <Card className="border-destructive">
-              <CardContent className="p-3 text-sm text-destructive">{error}</CardContent>
-            </Card>
-          )}
-        </div>
-      </ScrollArea>
-      <div className="border-t bg-background p-3">
-        <div className="flex gap-2">
-          <Input
+            )}
+          </div>
+        ))}
+        {isStreaming && messages[messages.length - 1]?.sender === 'USER' && (
+          <Loader2 className="size-4 animate-spin text-muted" aria-label="Thinking" />
+        )}
+        {error && (
+          <Alert status="danger">
+            <Alert.Content>
+              <Alert.Description>{error}</Alert.Description>
+            </Alert.Content>
+          </Alert>
+        )}
+      </div>
+      <div className="border-t border-border p-3">
+        <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface p-1.5 focus-within:border-accent">
+          <TextArea
+            ref={inputRef}
+            aria-label="Message"
+            rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="Type a message..."
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
+            placeholder="Message LifeOS…"
             disabled={isStreaming}
-            className="flex-1"
+            className="max-h-[140px] min-h-8 flex-1 resize-none border-0 bg-transparent px-2 py-1 shadow-none outline-none focus-visible:ring-0"
           />
-          <Button onClick={handleSend} disabled={isStreaming} size="icon">
-            <Send className="h-4 w-4" />
+          <Button
+            isIconOnly
+            size="sm"
+            aria-label="Send message"
+            isDisabled={isStreaming || !input.trim()}
+            onPress={handleSend}
+            className="shrink-0 rounded-xl"
+          >
+            <ArrowUp className="size-4" />
           </Button>
         </div>
       </div>

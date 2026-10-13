@@ -1,4 +1,5 @@
 import React from 'react'
+import { Toast } from '@heroui/react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import ChatPage from './pages/ChatPage'
@@ -18,7 +19,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background text-foreground">
+        <Toast.Provider />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route

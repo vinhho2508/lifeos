@@ -1,19 +1,16 @@
 import React from 'react'
 import Documents from '../components/Documents/Documents'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Page from '@/components/Layout/Page'
 
 const KnowledgeBasePage: React.FC = () => {
   return (
-    <div className="mx-auto max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Knowledge Base</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Documents />
-        </CardContent>
-      </Card>
-    </div>
+    <Page
+      title="Knowledge Base"
+      description="Documents you upload are digested so chat can search them."
+      width="max-w-2xl"
+    >
+      <Documents />
+    </Page>
   )
 }
 

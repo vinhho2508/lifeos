@@ -1,14 +1,13 @@
 @import 'tailwindcss';
-@import '../src/theme.css';
+@import '@heroui/styles';
+@import '../../packages/ui-theme/theme.css';
 
-@layer base {
-  body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--background);
+  color: var(--foreground);
 }
