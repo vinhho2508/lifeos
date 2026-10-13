@@ -4,10 +4,11 @@ import pytest
 from langchain_core.messages import AIMessage
 
 from src.core.database import async_session_factory
-from src.models.all_models import Document, DocumentChunk
+from src.models.all_models import DocStatusEnum, Document, DocumentChunk
 from src.services import task_service
 from tests.agent_helpers import call, run_turn, tasks_of, use_script
 from tests.conftest import set_timezone
+from tests.rag_helpers import fake_vector
 
 
 def test_parse_due_date_reads_naive_values_in_user_timezone():
@@ -108,10 +109,10 @@ async def test_list_tasks_overdue_only(owner, monkeypatch):
 
 
 async def test_search_documents_emits_citations_for_own_documents_only(
-    owner, other_user, monkeypatch
+    owner, other_user, monkeypatch, fake_embeddings
 ):
     async with async_session_factory() as db:
-        mine = Document(user_id=owner.id, filename="lease.txt")
+        mine = Document(user_id=owner.id, filename="lease.pdf", status=DocStatusEnum.READY)
         theirs = Document(user_id=other_user.id, filename="theirs.txt")
         db.add_all([mine, theirs])
         await db.flush()
@@ -120,10 +121,14 @@ async def test_search_documents_emits_citations_for_own_documents_only(
                 DocumentChunk(
                     document_id=mine.id,
                     content="Pets allowed with deposit.",
-                    embedding=[0.1] * 1536,
+                    page=4,
+                    heading_path="Rules › Pets",
+                    embedding=fake_vector("Pets allowed with deposit."),
                 ),
                 DocumentChunk(
-                    document_id=theirs.id, content="Their private text.", embedding=[0.1] * 1536
+                    document_id=theirs.id,
+                    content="Their private pets text.",
+                    embedding=fake_vector("Their private pets text."),
                 ),
             ]
         )
@@ -132,17 +137,56 @@ async def test_search_documents_emits_citations_for_own_documents_only(
     model = use_script(
         monkeypatch,
         call("search_documents", "c1", query="pets"),
-        AIMessage(content="Pets are allowed with a deposit (lease.txt)."),
+        AIMessage(content="Pets are allowed with a deposit (lease.pdf, p.4)."),
     )
 
     events = await run_turn(owner, "does my lease allow pets?")
 
     citations = [e for e in events if e["type"] == "citation"]
-    assert [c["source_name"] for c in citations] == ["lease.txt"]
+    assert [c["source_name"] for c in citations] == ["lease.pdf"]
     assert citations[0]["chunk_text"] == "Pets allowed with deposit."
-    assert "Their private text" not in model.calls[1][-1].content
+    tool_message = model.calls[1][-1].content
+    assert "Their private" not in tool_message
+    assert "[1] lease.pdf · p.4 · Rules › Pets" in tool_message
     result = next(e for e in events if e["type"] == "tool_result")
     assert result["summary"] == "1 passage found"
+    assert result["output"][0]["page"] == 4
+
+
+async def test_search_documents_without_embedding_key_is_a_tool_error(owner, monkeypatch):
+    use_script(
+        monkeypatch, call("search_documents", "c1", query="pets"), AIMessage(content="Sorry.")
+    )
+
+    events = await run_turn(owner, "does my lease allow pets?")
+
+    result = next(e for e in events if e["type"] == "tool_result")
+    assert result["status"] == "error"
+    assert "not configured" in result["summary"]
+
+
+async def test_list_documents_returns_own_documents(owner, other_user, monkeypatch):
+    async with async_session_factory() as db:
+        db.add_all(
+            [
+                Document(
+                    user_id=owner.id,
+                    filename="lease.pdf",
+                    status=DocStatusEnum.READY,
+                    chunk_count=3,
+                ),
+                Document(user_id=owner.id, filename="draft.md", status=DocStatusEnum.ERROR),
+                Document(user_id=other_user.id, filename="theirs.txt"),
+            ]
+        )
+        await db.commit()
+    use_script(monkeypatch, call("list_documents", "c1"), AIMessage(content="You have two."))
+
+    events = await run_turn(owner, "what documents do I have?")
+
+    result = next(e for e in events if e["type"] == "tool_result")
+    assert sorted(d["name"] for d in result["output"]) == ["draft.md", "lease.pdf"]
+    assert result["summary"] == "2 documents (1 searchable)"
 
 
 async def test_generate_image_url_never_reaches_the_model(owner, monkeypatch):

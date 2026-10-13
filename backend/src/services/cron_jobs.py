@@ -130,6 +130,14 @@ async def prune_agent_checkpoints() -> None:
     await prune_old_threads()
 
 
+@cron_service.register("*/5 * * * *", name="rag_digest_sweep")
+async def rag_digest_sweep() -> None:
+    """Resume document digests that are waiting or were interrupted."""
+    from src.services.rag.ingest import sweep_pending
+
+    await sweep_pending()
+
+
 # @cron_service.register("* * * * *", name="random_message")
 # async def random_message() -> None:
 #     """Send a random fun message every minute."""

@@ -161,6 +161,8 @@ def _tool_result_events(message: ToolMessage) -> list[dict]:
                 "document_id": hit["document_id"],
                 "chunk_text": hit["chunk_text"],
                 "source_name": hit["source_name"],
+                "page": hit.get("page"),
+                "heading_path": hit.get("heading_path"),
             }
         )
     if image := artifact.get("image"):

@@ -35,6 +35,8 @@ const ContentBlockRenderer: React.FC<ContentBlockRendererProps> = ({
       return (
         <Chip size="sm" color="accent" variant="soft" className="my-1">
           Source: {block.source_name}
+          {block.page != null && ` · p.${block.page}`}
+          {block.heading_path && ` · ${block.heading_path}`}
         </Chip>
       )
     case 'tool_call':
