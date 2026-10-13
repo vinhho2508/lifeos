@@ -25,7 +25,7 @@ from src.models.all_models import (
 from src.services.rag import embeddings, parsers
 from src.services.rag.chunking import chunk_sections
 from src.services.rag.fetch import FetchError, fetch_url
-from src.services.rag.storage import get_file_store
+from src.services.rag.storage import StorageError, get_file_store
 
 STALE_AFTER = timedelta(minutes=10)
 
@@ -44,6 +44,7 @@ _USER_SAFE = (
     parsers.UnsupportedFileType,
     FetchError,
     embeddings.EmbeddingsNotConfigured,
+    StorageError,
 )
 
 

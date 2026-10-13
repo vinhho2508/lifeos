@@ -12,7 +12,7 @@ from src.core.logging import logger
 from src.models.all_models import DocSourceEnum, DocStatusEnum, Document, User, utcnow
 from src.services.rag import ingest, parsers
 from src.services.rag.fetch import FetchError, validate_url
-from src.services.rag.storage import get_file_store, storage_key
+from src.services.rag.storage import StorageError, get_file_store, storage_key
 
 router = APIRouter()
 
@@ -101,7 +101,10 @@ async def upload_document(
 
     doc_id = uuid.uuid4()
     key = storage_key(user.id, doc_id)
-    await get_file_store().put(key, data, mime)
+    try:
+        await get_file_store().put(key, data, mime)
+    except StorageError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
     doc = Document(
         id=doc_id,
         user_id=user.id,

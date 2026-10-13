@@ -5,7 +5,15 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Protocol
 
+from botocore.exceptions import BotoCoreError, ClientError
+
+from src.core.aws import s3_client
 from src.core.database import settings
+from src.core.logging import logger
+
+
+class StorageError(Exception):
+    """The original could not be stored or read; the message is safe to show the user."""
 
 
 class FileStore(Protocol):
@@ -37,29 +45,34 @@ class LocalFileStore:
 
 
 class S3FileStore:
-    def __init__(self, bucket: str, region: str):
-        import boto3
-
+    def __init__(self, bucket: str, client=None):
         self.bucket = bucket
-        self.client = boto3.client("s3", region_name=region)
+        self.client = client or s3_client()
+
+    async def _call(self, action: str, fn, **kwargs):
+        try:
+            return await asyncio.to_thread(fn, Bucket=self.bucket, **kwargs)
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"S3 {action} failed for {kwargs.get('Key')}: {e!r}")
+            raise StorageError(f"Could not {action} the file in S3 storage.") from e
 
     async def put(self, key: str, data: bytes, content_type: str) -> None:
-        await asyncio.to_thread(
-            self.client.put_object, Bucket=self.bucket, Key=key, Body=data, ContentType=content_type
+        await self._call(
+            "store", self.client.put_object, Key=key, Body=data, ContentType=content_type
         )
 
     async def get(self, key: str) -> bytes:
-        obj = await asyncio.to_thread(self.client.get_object, Bucket=self.bucket, Key=key)
+        obj = await self._call("read", self.client.get_object, Key=key)
         return await asyncio.to_thread(obj["Body"].read)
 
     async def delete(self, key: str) -> None:
-        await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
+        await self._call("delete", self.client.delete_object, Key=key)
 
 
 @lru_cache
 def get_file_store() -> FileStore:
     if settings.S3_BUCKET_NAME:
-        return S3FileStore(settings.S3_BUCKET_NAME, settings.AWS_REGION)
+        return S3FileStore(settings.S3_BUCKET_NAME)
     return LocalFileStore(settings.UPLOAD_DIR)
 
 

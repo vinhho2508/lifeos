@@ -18,6 +18,16 @@ class Settings(BaseSettings):
     SLACK_SERVICE_TOKEN: str = ""
     S3_BUCKET_NAME: str = ""
     AWS_REGION: str = "us-east-1"
+    # Read from .env here because boto3 only sees the process environment; empty
+    # falls back to boto3's default chain (env vars, ~/.aws, instance role).
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    # S3-compatible storage (Cloudflare R2, MinIO): the API endpoint, e.g.
+    # https://<account_id>.r2.cloudflarestorage.com (use AWS_REGION=auto for R2).
+    S3_ENDPOINT_URL: str = ""
+    # Public base URL for generated image links (R2 custom domain or r2.dev URL);
+    # empty means https://<bucket>.s3.<region>.amazonaws.com.
+    S3_PUBLIC_URL: str = ""
     # RAG: originals go to S3 when S3_BUCKET_NAME is set, else to UPLOAD_DIR.
     UPLOAD_DIR: str = "data/uploads"
     EMBEDDING_MODEL: str = "text-embedding-3-small"

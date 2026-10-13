@@ -162,17 +162,20 @@ Load `dist/` as an unpacked extension in `chrome://extensions/`. See [chrome_ext
 
 ### Optional
 
-| Variable                               | Purpose                                                  | File                                |
-| -------------------------------------- | -------------------------------------------------------- | ----------------------------------- |
-| `SLACK_BOT_TOKEN`                      | Slack bot token for DM reminders                         | `backend/.env`                      |
-| `SLACK_DM_USER_ID`                     | Slack user ID to receive DMs                             | `backend/.env`                      |
-| `SLACK_SIGNING_SECRET`                 | Slack signing secret                                     | `backend/.env`                      |
-| `SLACK_APP_TOKEN`                      | Slack Socket Mode token                                  | `slack_bot/.env`                    |
-| `SLACK_SERVICE_TOKEN`                  | Shared secret the Slack bot uses to call `/chat/stream`  | `backend/.env` and `slack_bot/.env` |
-| `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Keys for the other chat providers (pick one in Settings) | `backend/.env`                      |
-| `S3_BUCKET_NAME`                       | S3 bucket for generated images and document originals    | `backend/.env`                      |
-| `UPLOAD_DIR`                           | Local folder for document originals when S3 is unset     | `backend/.env`                      |
-| `AWS_REGION`                           | AWS region for S3 (default: `us-east-1`)                 | `backend/.env`                      |
+| Variable                                      | Purpose                                                        | File                                |
+| --------------------------------------------- | -------------------------------------------------------------- | ----------------------------------- |
+| `SLACK_BOT_TOKEN`                             | Slack bot token for DM reminders                               | `backend/.env`                      |
+| `SLACK_DM_USER_ID`                            | Slack user ID to receive DMs                                   | `backend/.env`                      |
+| `SLACK_SIGNING_SECRET`                        | Slack signing secret                                           | `backend/.env`                      |
+| `SLACK_APP_TOKEN`                             | Slack Socket Mode token                                        | `slack_bot/.env`                    |
+| `SLACK_SERVICE_TOKEN`                         | Shared secret the Slack bot uses to call `/chat/stream`        | `backend/.env` and `slack_bot/.env` |
+| `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`        | Keys for the other chat providers (pick one in Settings)       | `backend/.env`                      |
+| `S3_BUCKET_NAME`                              | S3 bucket for generated images and document originals          | `backend/.env`                      |
+| `UPLOAD_DIR`                                  | Local folder for document originals when S3 is unset           | `backend/.env`                      |
+| `AWS_REGION`                                  | AWS region for S3 (default: `us-east-1`)                       | `backend/.env`                      |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | S3 / R2 access keys                                            | `backend/.env`                      |
+| `S3_ENDPOINT_URL`                             | S3-compatible endpoint, e.g. Cloudflare R2 (`AWS_REGION=auto`) | `backend/.env`                      |
+| `S3_PUBLIC_URL`                               | Public base URL for generated image links (R2 domain)          | `backend/.env`                      |
 
 For the complete reference, see `specs/001-lifeos-assistant/quickstart.md`.
 

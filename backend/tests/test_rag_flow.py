@@ -247,3 +247,66 @@ async def test_url_ingest_rejects_non_http_urls(client, auth_headers):
         "/documents/url", json={"url": "file:///etc/passwd"}, headers=auth_headers
     )
     assert response.status_code == 422
+
+
+class _NoCredentialsS3:
+    def _fail(self, **kwargs):
+        from botocore.exceptions import NoCredentialsError
+
+        raise NoCredentialsError()
+
+    put_object = get_object = delete_object = _fail
+
+
+async def test_storage_failure_on_upload_is_a_503(client, auth_headers, monkeypatch):
+    from src.api import documents
+    from src.services.rag.storage import S3FileStore
+
+    monkeypatch.setattr(documents, "get_file_store", lambda: S3FileStore("b", _NoCredentialsS3()))
+
+    response = await _upload(client, auth_headers)
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Could not store the file in S3 storage."
+
+
+async def test_storage_failure_during_digest_is_a_readable_error(
+    client, auth_headers, fake_embeddings, monkeypatch
+):
+    from src.services.rag import fetch
+    from src.services.rag.storage import S3FileStore
+
+    async def fake_fetch(url):
+        return fetch.Fetched(url, b"<html><body><p>hi</p></body></html>", "text/html")
+
+    monkeypatch.setattr(ingest, "fetch_url", fake_fetch)
+    monkeypatch.setattr(ingest, "get_file_store", lambda: S3FileStore("b", _NoCredentialsS3()))
+    response = await client.post(
+        "/documents/url", json={"url": "https://example.com/x"}, headers=auth_headers
+    )
+
+    await ingest.digest_document(response.json()["id"])
+
+    doc = await _doc(response.json()["id"])
+    assert doc.status == DocStatusEnum.ERROR
+    assert doc.error_message == "Could not store the file in S3 storage."
+
+
+def test_s3_client_uses_keys_from_settings(monkeypatch):
+    from src.core import aws
+
+    monkeypatch.setattr(settings, "AWS_ACCESS_KEY_ID", "AKIATEST")
+    monkeypatch.setattr(settings, "AWS_SECRET_ACCESS_KEY", "test-only")
+
+    creds = aws.s3_client()._request_signer._credentials
+
+    assert creds.access_key == "AKIATEST" and creds.secret_key == "test-only"  # noqa: S105
+
+
+def test_s3_client_targets_a_custom_endpoint(monkeypatch):
+    from src.core import aws
+
+    monkeypatch.setattr(settings, "S3_ENDPOINT_URL", "https://acct.r2.cloudflarestorage.com")
+    monkeypatch.setattr(settings, "AWS_REGION", "auto")
+
+    assert aws.s3_client().meta.endpoint_url == "https://acct.r2.cloudflarestorage.com"

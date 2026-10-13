@@ -4,8 +4,7 @@ import base64
 import uuid
 from datetime import datetime
 
-import boto3
-
+from src.core.aws import s3_client
 from src.core.database import settings
 from src.core.logging import logger
 
@@ -22,10 +21,7 @@ class ImageGenerationService:
         self.s3_client = None
         if self.s3_bucket:
             try:
-                self.s3_client = boto3.client(
-                    "s3",
-                    region_name=self.s3_region,
-                )
+                self.s3_client = s3_client()
             except Exception as e:
                 logger.warning(f"Failed to initialize S3 client: {e}")
 
@@ -77,7 +73,10 @@ class ImageGenerationService:
                 ContentType="image/png",
             )
 
-            url = f"https://{self.s3_bucket}.s3.{self.s3_region}.amazonaws.com/{key}"
+            base = settings.S3_PUBLIC_URL.rstrip("/") or (
+                f"https://{self.s3_bucket}.s3.{self.s3_region}.amazonaws.com"
+            )
+            url = f"{base}/{key}"
             logger.info(f"Uploaded image to S3: {url}")
             return url
         except Exception as e:
