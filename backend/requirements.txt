@@ -5,6 +5,7 @@ psycopg2-binary
 asyncpg
 pgvector
 slack-sdk
+aiohttp
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
