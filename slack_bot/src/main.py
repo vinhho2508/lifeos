@@ -175,7 +175,24 @@ async def handle_reaction_added(body, logger, client):
             pass
 
 
+async def _health(reader, writer):
+    # Minimal HTTP 200 so Render's web-service port scan / health check passes.
+    try:
+        await reader.readuntil(b"\r\n\r\n")
+    except Exception:
+        pass
+    writer.write(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
+    try:
+        await writer.drain()
+    finally:
+        writer.close()
+
+
 async def main():
+    # Socket Mode opens no inbound port; Render web services require one.
+    port = os.environ.get("PORT")
+    if port:
+        await asyncio.start_server(_health, "0.0.0.0", int(port))
     handler = AsyncSocketModeHandler(app, SLACK_APP_TOKEN)
     await handler.start_async()
 
