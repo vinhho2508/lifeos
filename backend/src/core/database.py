@@ -4,6 +4,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 class Settings(BaseSettings):
+    PORT: int = 8000
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/lifeos"
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""

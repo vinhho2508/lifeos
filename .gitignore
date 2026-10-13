@@ -49,3 +49,5 @@ Thumbs.db
 
 # Uploaded document originals (local file store)
 backend/data/
+
+/traces/
