@@ -74,7 +74,7 @@ Design decisions: [specs/002-agent-loop/research.md](specs/002-agent-loop/resear
 
 ```bash
 git clone <repo-url> && cd lifeos
-docker compose up -d
+docker compose up -d db
 ```
 
 PostgreSQL with pgvector runs on `localhost:5432` (credentials: `user` / `password` / `lifeos`).
@@ -135,6 +135,34 @@ python src/main.py
 
 Requires `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_SIGNING_SECRET`, and `SLACK_SERVICE_TOKEN`
 (the same value as in `backend/.env`; the bot uses it to authenticate to the backend).
+
+### Run everything in Docker
+
+Instead of steps 1–4 you can run the database, backend, frontend and Slack bot as containers:
+
+```bash
+# backend/.env and slack_bot/.env are passed to the containers as-is
+echo "VITE_GOOGLE_CLIENT_ID=<your-client-id>" > .env   # baked into the frontend build
+docker compose up -d --build
+```
+
+- Web UI on `http://localhost:5173`. nginx serves the build and proxies `/api` to the backend.
+- API on `http://localhost:8000`.
+- `DATABASE_URL` and `BACKEND_URL` are set to the compose service names, so the
+  `localhost` values in your `.env` files don't need to change.
+- Uploaded originals are stored in the `uploads` volume (when `S3_BUCKET_NAME` is unset).
+- If a port is already in use, override it with `DB_PORT`, `BACKEND_PORT` or `FRONTEND_PORT`.
+- To run without the Slack bot: `docker compose up -d --build db backend frontend`.
+
+Images are published to GHCR by tagging a release (`.github/workflows/release-images.yml`):
+
+```bash
+git tag lifeos-be-v1.0.0 && git push origin lifeos-be-v1.0.0    # ghcr.io/<owner>/lifeos-backend
+git tag lifeos-fe-v1.0.0 && git push origin lifeos-fe-v1.0.0    # ghcr.io/<owner>/lifeos-frontend
+git tag lifeos-bot-v1.0.0 && git push origin lifeos-bot-v1.0.0  # ghcr.io/<owner>/lifeos-slack-bot
+```
+
+The frontend build reads `VITE_GOOGLE_CLIENT_ID` from the repository's Actions variables.
 
 ### 5. (Optional) Chrome Extension
 

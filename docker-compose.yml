@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   db:
     image: pgvector/pgvector:pg16
     container_name: lifeos-db
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -18,5 +16,48 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build: ./backend
+    container_name: lifeos-backend
+    env_file: ./backend/.env
+    environment:
+      # Overrides the localhost URL in backend/.env with the compose service name.
+      DATABASE_URL: postgresql+asyncpg://user:password@db:5432/lifeos
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - uploads:/app/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        # Read from a repo-root .env (compose loads it automatically).
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    container_name: lifeos-frontend
+    ports:
+      # 5173 matches the dev server, so the existing Google OAuth origin keeps working.
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  slack_bot:
+    build: ./slack_bot
+    container_name: lifeos-slack-bot
+    env_file: ./slack_bot/.env
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  uploads:
