@@ -131,9 +131,7 @@ async def _messages(
         if before.tzinfo is not None:  # Message.timestamp is stored as naive UTC
             before = before.astimezone(UTC).replace(tzinfo=None)
         query = query.where(Message.timestamp < before)
-    rows = (
-        (await db.execute(query.order_by(Message.timestamp.desc()).limit(limit))).scalars().all()
-    )
+    rows = (await db.execute(query.order_by(Message.timestamp.desc()).limit(limit))).scalars().all()
     return list(reversed(rows))
 
 
