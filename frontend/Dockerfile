@@ -17,7 +17,12 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
-COPY frontend/docker/nginx.conf /etc/nginx/conf.d/default.conf
+# The nginx image renders /etc/nginx/templates/*.template with envsubst on start.
+# Defaults match docker-compose; on Render set BACKEND_URL=https://<backend>.onrender.com
+# and BACKEND_HOST=<backend>.onrender.com.
+ENV BACKEND_URL=http://backend:8000 \
+    BACKEND_HOST=backend
+COPY frontend/docker/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/frontend/dist /usr/share/nginx/html
 
 EXPOSE 80
