@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge } from '@/components/ui/badge'
+import { Chip } from '@heroui/react'
 import type { ExtensionMode } from '@/types'
 
 interface ModeBadgeProps {
@@ -8,9 +8,9 @@ interface ModeBadgeProps {
 
 const ModeBadge: React.FC<ModeBadgeProps> = ({ mode }) => {
   return (
-    <Badge variant={mode === 'with_backend' ? 'default' : 'secondary'} className="text-[10px]">
+    <Chip size="sm" color={mode === 'with_backend' ? 'accent' : 'default'} variant="soft">
       {mode === 'with_backend' ? 'Backend' : 'Direct'}
-    </Badge>
+    </Chip>
   )
 }
 
