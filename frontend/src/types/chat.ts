@@ -77,3 +77,10 @@ export interface ContentDelta {
   message?: string
   stop_reason?: 'end_turn' | 'max_steps' | 'error'
 }
+
+export interface Conversation {
+  id: string
+  title: string
+  created_at: string
+  updated_at: string
+}

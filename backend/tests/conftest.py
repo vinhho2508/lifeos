@@ -32,7 +32,7 @@ from src.core.database import async_session_factory, engine  # noqa: E402
 from src.models.all_models import User, UserSettings  # noqa: E402
 
 OWNER_EMAIL = "owner@example.com"
-_TABLES = "document_chunks, documents, messages, tasks, user_settings, users"
+_TABLES = "document_chunks, documents, messages, conversations, tasks, user_settings, users"
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
