@@ -2,11 +2,11 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.auth import get_current_user
 from src.core.database import get_db
-from src.models.all_models import StatusEnum, Task, User
+from src.models.all_models import StatusEnum, User
 from src.services import task_service
 from src.services.nlp import extract_task_info
 from src.services.settings_service import get_user_settings
@@ -25,19 +25,18 @@ class TaskFromMessageRequest(BaseModel):
 
 
 @router.get("/")
-async def list_tasks(db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(User).limit(1))
-    user = res.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=401)
-
+async def list_tasks(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     return await get_tasks(db, user.id)
 
 
 @router.put("/{task_id}")
-async def update_task(task_id: uuid.UUID, update: TaskUpdate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Task).where(Task.id == task_id))
-    task = result.scalar_one_or_none()
+async def update_task(
+    task_id: uuid.UUID,
+    update: TaskUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    task = await task_service.get_task(db, user.id, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -45,12 +44,11 @@ async def update_task(task_id: uuid.UUID, update: TaskUpdate, db: AsyncSession =
 
 
 @router.post("/from-message")
-async def create_task_from_message(req: TaskFromMessageRequest, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(User).limit(1))
-    user = res.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=401)
-
+async def create_task_from_message(
+    req: TaskFromMessageRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     user_settings = await get_user_settings(db, user.id)
     info = await extract_task_info(
         req.message,
